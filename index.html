@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Liguilla de los Miércoles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Figtree:wght@400;500;600;700&family=Oleo+Script:wght@400;700&family=Rubik:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: court-blue scoreboard header, tabs, one centred column (max 760px) of cards */
+:root{
+  --bg:#F2F5F8; --surface:#FFFFFF; --ink:#0F1D2B; --muted:#5A6B7B; --line:#DCE3EA;
+  --court:#1F5FA8; --court-ink:#FFFFFF; --ball:#D9E54C; --ball-ink:#1C2410;
+  --win:#23804F; --loss:#C2453D; --soft:#E8EEF5;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B141D; --surface:#13202C; --ink:#E6EEF5; --muted:#8FA2B3; --line:#24384A;
+  --court:#1B4F8C; --court-ink:#FFFFFF; --ball:#D9E54C; --ball-ink:#1C2410;
+  --win:#4CC386; --loss:#F07A70; --soft:#1A2B3A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B141D; --surface:#13202C; --ink:#E6EEF5; --muted:#8FA2B3; --line:#24384A;
+  --court:#1B4F8C; --court-ink:#FFFFFF; --ball:#D9E54C; --ball-ink:#1C2410;
+  --win:#4CC386; --loss:#F07A70; --soft:#1A2B3A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.band{background:var(--court);color:var(--court-ink);position:relative;overflow:hidden}
+header.band::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,transparent calc(50% - 1px),rgba(255,255,255,.35) calc(50% - 1px),rgba(255,255,255,.35) calc(50% + 1px),transparent calc(50% + 1px)),
+  linear-gradient(0deg,transparent 30%,rgba(255,255,255,.35) 30%,rgba(255,255,255,.35) calc(30% + 2px),transparent calc(30% + 2px))}
+header .wrap{padding-block:28px 0;position:relative;z-index:1}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.85;font-weight:600}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,8vw,52px);line-height:1;margin:6px 0 14px;text-wrap:balance;text-transform:uppercase;letter-spacing:.01em}
+.next{display:inline-flex;gap:8px;align-items:center;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px}
+nav.tabs{display:flex;gap:4px;margin-top:22px}
+nav.tabs a{color:var(--court-ink);text-decoration:none;font-family:var(--display);font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.04em;padding:8px 14px 10px;border-radius:8px 8px 0 0;opacity:.8}
+nav.tabs a[aria-current="page"]{background:var(--bg);color:var(--ink);opacity:1}
+nav.tabs a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ball);outline-offset:2px}
+main .wrap{padding-block:22px 48px;display:flex;flex-direction:column;gap:18px}
+h2{font-family:var(--display);font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.note{color:var(--muted);font-size:13px;margin:0}
+.status{font-size:13px;color:var(--muted);background:var(--soft);border-radius:8px;padding:8px 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;min-width:560px}
+th,td{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.name,th.name{text-align:left}
+td.name{font-weight:600}
+tr:last-child td{border-bottom:0}
+td.pos{font-family:var(--display);font-weight:800;font-size:20px;width:40px}
+tr.lead td.pos{color:var(--court)}
+td.pts{font-family:var(--display);font-weight:800;font-size:22px}
+.form{display:inline-flex;gap:3px}
+.form i{display:inline-block;width:18px;height:18px;border-radius:4px;font-style:normal;font-size:11px;font-weight:700;line-height:18px;color:#fff}
+.form i.w{background:var(--win)} .form i.l{background:var(--loss)}
+.form i.e{background:var(--soft);color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.rules{padding:16px 18px}
+.rules h3,.week h3{font-family:var(--display);font-weight:700;font-size:19px;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.rules ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;max-width:65ch}
+.vuelta{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:8px 0 -6px}
+.week{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.week.current{border-color:var(--court);box-shadow:0 0 0 1px var(--court)}
+.week-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.date{color:var(--muted);font-size:13px;font-weight:500}
+.chip{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 9px}
+.chip.now{background:var(--ball);color:var(--ball-ink)} .chip.done{background:var(--soft);color:var(--muted)}
+.match{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.team{font-weight:600;min-width:0}
+.team.b{text-align:right}
+.team.won{color:var(--win)}
+.team small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.score{font-family:var(--display);font-weight:700;font-size:18px;font-variant-numeric:tabular-nums;text-align:center;letter-spacing:.02em}
+.score.empty{color:var(--muted);font-family:var(--body);font-size:12px;font-weight:500}
+.actions{grid-column:1/-1;display:flex;justify-content:center}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 12px;font-weight:600;font-size:13px}
+button.primary{background:var(--court);color:var(--court-ink);border-color:var(--court)}
+button.link{border:0;background:none;color:var(--court);padding:4px 6px}
+:root[data-theme="dark"] button.link{color:var(--ball)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.link{color:var(--ball)}}
+.editor{grid-column:1/-1;background:var(--soft);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.sets{display:grid;grid-template-columns:auto repeat(3,minmax(0,64px));gap:6px 8px;align-items:center;font-size:13px}
+.sets .lbl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;text-align:center}
+.sets .tn{font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input,select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:100%;min-width:0}
+input[type=number]{text-align:center;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.err{color:var(--loss);font-size:13px;margin:0}
+.settings{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.skips{display:flex;flex-wrap:wrap;gap:6px}
+.skips span{background:var(--soft);border-radius:999px;padding:3px 4px 3px 10px;font-size:13px;display:inline-flex;align-items:center;gap:2px}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}.match{grid-template-columns:1fr;gap:4px}.team.b{text-align:left}.score{text-align:left}}
+@media (prefers-reduced-motion:no-preference){.week,.card{transition:box-shadow .2s}}
+
+/* Selector de sección: franja neutra común a la liga y al juego */
+:root{--strip:#0A0F1A; --strip-ink:#C9D1DE}
+.switch{background:var(--strip);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px}
+.switch nav{max-width:760px;margin:0 auto;display:flex;gap:6px}
+.switch a{flex:1;text-align:center;text-decoration:none;color:var(--strip-ink);font-weight:600;font-size:13px;padding:7px 10px;border-radius:999px;border:1px solid rgba(201,209,222,.25)}
+.switch a.on-liga{background:#D9E54C;color:#1C2410;border-color:#D9E54C}
+.switch a.on-pj{background:#C8324B;color:#FFFFFF;border-color:#C8324B}
+.switch a:focus-visible{outline:2px solid #FFFFFF;outline-offset:2px}
+
+/* ===== La Palabreja: identidad propia, noche granaína (solo oscuro, a propósito) ===== */
+/* Layout: barra fina arriba, tablero centrado que llena el alto, teclado pegado abajo; ayuda, números y diccionario en ventanas */
+body.mode-pj{
+  --bg:#121829; --surface:#1C2440; --raise:#2A3358; --ink:#F2ECE1; --muted:#9AA3BF; --rule:#2A3358;
+  --granada:#C8324B; --granada-ink:#FFFFFF; --albero:#E2AC4C; --albero-ink:#2A1C05; --absent:#3A4366;
+  --pjdisplay:"Oleo Script",Georgia,serif; --body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+  background-image:repeating-conic-gradient(from 45deg,rgba(226,172,76,.03) 0 25%,transparent 0 50%);background-size:56px 56px}
+.pj{min-height:calc(100dvh - 50px);display:flex;flex-direction:column}
+.pj .bar{border-bottom:1px solid var(--rule);padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:6px}
+.pj .bar-in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.pj .bar-in .l{display:flex;gap:4px}
+.pj .bar-in .r{display:flex;gap:4px;justify-content:flex-end}
+.pj .wordmark{font-family:var(--pjdisplay);font-weight:700;font-size:28px;line-height:1.1;margin:0;color:var(--ink);text-transform:none;letter-spacing:0}
+.pj .wordmark span{color:var(--granada)}
+.pj .ib{width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--ink);cursor:pointer;padding:0}
+.pj .ib:hover{background:var(--surface)}
+.pj .ib svg{width:22px;height:22px}
+.pj .play{flex:1;display:flex;flex-direction:column;justify-content:space-between;align-items:center;gap:12px;
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));padding-block:14px 10px;position:relative}
+.pj .num{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--albero);font-weight:700}
+.pj .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.pj .board{--n:5;--gaps:4;--ts:min(60px,8dvh,calc((100vw - 24px - var(--gaps) * 5px) / var(--n)));display:grid;gap:6px;max-width:100%}
+.pj .grow{display:flex;gap:5px;justify-content:center}
+.pj .gap{width:calc(var(--ts) * .5);flex:none}
+.pj .tile{width:var(--ts);height:var(--ts);flex:none;border-radius:4px;border:2px solid var(--raise);display:grid;place-items:center;font-weight:800;font-size:calc(var(--ts) * .5);color:var(--ink);background:transparent}
+.pj .reveal-word{word-break:break-word}
+.pj .tile.filled{border-color:var(--muted)}
+.pj .tile.c,.pj .kb button.c{background:var(--granada);border-color:var(--granada);color:var(--granada-ink)}
+.pj .tile.p,.pj .kb button.p{background:var(--albero);border-color:var(--albero);color:var(--albero-ink)}
+.pj .tile.a,.pj .kb button.a{background:var(--absent);border-color:var(--absent);color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){
+  .pj .tile.reveal{animation:flip .45s ease both}
+  @keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+  .pj .tile.pop{animation:pop .1s ease}
+  @keyframes pop{50%{transform:scale(1.08)}}
+  .pj .grow.shake{animation:shake .35s}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+}
+.pj .toast{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-weight:700;font-size:14px;padding:8px 14px;border-radius:8px;z-index:5;white-space:nowrap}
+.pj .kb{display:flex;flex-direction:column;gap:6px;width:100%;max-width:520px}
+.pj .krow{display:flex;gap:5px}
+.pj .kb button{flex:1;min-width:0;height:54px;padding:0;font:inherit;font-weight:700;font-size:15px;border-radius:6px;border:0;background:var(--raise);color:var(--ink);cursor:pointer}
+.pj .kb button.wide{flex:1.6;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.pj .again{font-size:14px;color:var(--muted);text-align:center}
+.pj .again button{font:inherit;font-weight:700;color:var(--albero);background:none;border:0;cursor:pointer;padding:4px}
+.pj button:focus-visible{outline:2px solid var(--albero);outline-offset:2px}
+/* Ventanas */
+.pj .modal{position:fixed;inset:0;z-index:20;background:rgba(6,9,18,.72);display:flex;align-items:center;justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px))}
+.pj .sheet{background:var(--surface);color:var(--ink);border-radius:16px;width:100%;max-width:420px;max-height:100%;overflow-y:auto;padding:20px 20px 22px;display:flex;flex-direction:column;gap:14px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.pj .sheet h2{font-family:var(--pjdisplay);font-weight:400;font-size:26px;margin:0;text-transform:none;letter-spacing:0;padding-right:40px}
+.pj .sheet .x{position:absolute;top:10px;right:10px}
+.pj .sheet p{margin:0;font-size:14px;color:var(--muted)}
+.pj .ex{display:flex;gap:4px}
+.pj .ex{--ts:36px}
+.pj .rule{border:0;border-top:1px solid var(--rule);margin:0;width:100%}
+.pj .result{display:flex;flex-direction:column;gap:4px;text-align:center}
+.pj .result .t{font-family:var(--pjdisplay);font-size:30px}
+.pj .reveal-word{font-weight:800;font-size:30px;letter-spacing:.14em;color:var(--albero)}
+.pj .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;text-align:center}
+.pj .stats b{display:block;font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.pj .stats span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.pj .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.pj .dist{display:grid;gap:4px;font-size:13px;font-variant-numeric:tabular-nums}
+.pj .dist div{display:grid;grid-template-columns:14px 1fr;gap:8px;align-items:center}
+.pj .dist i{display:block;background:var(--absent);border-radius:3px;padding:1px 8px;text-align:right;font-style:normal;font-weight:700;min-width:26px}
+.pj .dist i.hl{background:var(--granada);color:var(--granada-ink)}
+.pj .foot{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.pj .cd b{display:block;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.pj .btn{font:inherit;font-weight:700;border:0;border-radius:999px;padding:11px 20px;background:var(--granada);color:var(--granada-ink);cursor:pointer}
+.pj .gloss{display:grid;gap:12px;margin:0}
+.pj .gloss dt{font-weight:800;letter-spacing:.1em}
+.pj .gloss dd{margin:2px 0 0;color:var(--muted);font-size:14px}
+.pj .testbar{width:100%;max-width:520px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px dashed var(--albero);border-radius:10px;padding:8px 10px}
+.pj .tb-l{font-size:12px;font-weight:700;color:var(--albero);text-transform:uppercase;letter-spacing:.06em}
+.pj .testbar select{flex:1;min-width:140px;width:auto;font:inherit;font-size:14px;background:var(--raise);color:var(--ink);border:0;border-radius:8px;padding:7px 8px}
+.pj .testbar button{font:inherit;font-weight:700;font-size:13px;border:0;border-radius:8px;padding:7px 12px;background:var(--raise);color:var(--ink);cursor:pointer}
+.pj .addform{display:flex;flex-direction:column;gap:10px}
+.pj .addform label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.pj .addform input,.pj .addform textarea{font:inherit;font-size:15px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink);background:var(--raise);border:1px solid transparent;border-radius:8px;padding:9px 10px;width:100%;resize:vertical}
+.pj .addform input{text-transform:uppercase}
+.pj .addform input:focus,.pj .addform textarea:focus{outline:none;border-color:var(--albero)}
+.pj .addform .btn{align-self:flex-start}
+.pj .err{color:#FF8A8A}
+.pj .ok{color:var(--albero)}
+.pj .mine{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pj .mine li{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;font-size:14px}
+.pj .mine small{display:block;color:var(--muted)}
+.pj .lnk{font:inherit;font-size:13px;font-weight:700;color:var(--albero);background:none;border:0;padding:2px 4px;cursor:pointer;flex:none}
+.pj details summary{cursor:pointer}
+@media (max-height:640px){.pj .kb button{height:46px}}
+</style>
+</head>
+<body>
+
+<div class="switch"><nav aria-label="Sección">
+  <a href="#clasificacion" id="sw-liga">Liguilla de pádel</a>
+  <a href="#palabreja" id="sw-pj">La Palabreja</a>
+</nav></div>
+<header class="band">
+  <div class="wrap">
+    <div class="eyebrow">Pádel · 8 jugadores · todos los miércoles</div>
+    <h1 id="title">Liguilla de los Miércoles</h1>
+    <span class="next" id="next">Cargando calendario…</span>
+    <nav class="tabs" id="tabs">
+      <a href="#clasificacion" data-v="clasificacion">Clasificación</a>
+      <a href="#jornadas" data-v="jornadas">Jornadas</a>
+      <a href="#ajustes" data-v="ajustes" id="tab-ajustes">Ajustes</a>
+    </nav>
+  </div>
+</header>
+<main><div class="wrap" id="view"></div></main>
+<div class="pj" id="pj" hidden>
+  <div class="bar"><div class="bar-in">
+    <div class="l"><button class="ib" data-open="help" aria-label="Cómo se juega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.2-2.5 3.9"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg></button>
+      <button class="ib" data-open="add" aria-label="Añadir palabra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    <h1 class="wordmark">La Palabr<span>eja</span></h1>
+    <div class="r">
+      <button class="ib" data-open="dicc" aria-label="Diccionario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4.5h10.5a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3z"/><path d="M5 16.5a3 3 0 0 1 3-3h10.5"/></svg></button>
+      <button class="ib" data-open="stats" aria-label="Tus números"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V12M10 20V5M15 20v-9M20 20v-5"/></svg></button>
+    </div>
+  </div></div>
+  <div class="play">
+    <span class="num" id="pj-num">Palabra del día</span>
+    <div class="toast" id="pj-toast" hidden></div>
+    <div class="stage">
+      <div class="board" id="pj-board" aria-live="polite"></div>
+      <div class="again" id="pj-again" hidden>Partida terminada. <button data-open="stats">Ver resultado</button></div>
+    </div>
+    <div class="kb" id="pj-kb"></div>
+  </div>
+  <div class="modal" id="pj-modal" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pj-mtitle" id="pj-sheet"></div></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ================== CONFIGURACIÓN ==================
+// 1) Pega aquí la configuración de tu proyecto de Firebase (Configuración del proyecto > Tus apps > Web).
+// 2) Cambia el PIN por el que quieras. Pásaselo a tus amigos: hace falta para apuntar resultados y cambiar ajustes de la liga.
+//    Las palabras de La Palabreja se pueden añadir sin PIN.
+const CONFIG={
+  firebase:{
+    apiKey:"AIzaSyCUlZzmkinIELkPx352sKUblYaJduFKY5E",
+    authDomain:"paginapadel.firebaseapp.com",
+    projectId:"paginapadel",
+    storageBucket:"paginapadel.firebasestorage.app",
+    messagingSenderId:"272182313407",
+    appId:"1:272182313407:web:bf646f51ffd433b4d4a10a"
+  },
+  pin:"1234"
+};
+// ===================================================
+
+(()=>{
+const configured=!!CONFIG.firebase.apiKey&&!CONFIG.firebase.apiKey.startsWith("PEGA")&&!!window.firebase;
+const PINK="liguilla-pin-ok";
+let unlocked=false; try{ unlocked=localStorage.getItem(PINK)===String(CONFIG.pin); }catch(e){}
+function askPin(){
+  if(unlocked) return true;
+  const p=window.prompt("Escribe el PIN del grupo para guardar:");
+  if(p===null) return false;
+  if(p.trim()===String(CONFIG.pin)){ unlocked=true; try{ localStorage.setItem(PINK,String(CONFIG.pin)); }catch(e){} return true; }
+  window.alert("PIN incorrecto.");
+  return false;
+}
+const noPin=()=>Promise.reject({code:"pin",message:"Falta el PIN"});
+const mapErr=e=>{ throw {code:e&&e.code==="permission-denied"?"invalid_argument":"unavailable",message:String(e&&e.message||e)}; };
+
+// Copia local por si Firebase no está configurado: los datos se quedan en este navegador
+function localDb(){
+  const K="liguilla-db"; let data; try{ data=JSON.parse(localStorage.getItem(K))||{}; }catch(e){ data={}; }
+  const subs=new Set(), meta={fromCache:false,hasPendingWrites:false};
+  const save=()=>{ try{ localStorage.setItem(K,JSON.stringify(data)); }catch(e){} subs.forEach(f=>f()); };
+  const snap=(id,v)=>({id,exists:v!==undefined,data:()=>v,metadata:meta});
+  const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const watch=f=>{ subs.add(f); setTimeout(f,0); return ()=>subs.delete(f); };
+  const docRef=path=>{ const id=path.slice(path.lastIndexOf("/")+1); return {id,path,
+    get:async()=>snap(id,data[path]),
+    set:async v=>{ data[path]=JSON.parse(JSON.stringify(v)); save(); },
+    update:async v=>{ if(!data[path]) throw {code:"invalid_argument"}; data[path]={...data[path],...JSON.parse(JSON.stringify(v))}; save(); },
+    delete:async()=>{ delete data[path]; save(); },
+    onSnapshot:next=>watch(()=>next(snap(id,data[path])))}; };
+  const col=c=>({path:c,doc:id=>docRef(c+"/"+(id||newId())),
+    add:async v=>{ const r=docRef(c+"/"+newId()); await r.set(v); return r; },
+    onSnapshot:next=>watch(()=>{ const depth=c.split("/").length+1;
+      const docs=Object.keys(data).filter(k=>k.startsWith(c+"/")&&k.split("/").length===depth).sort().map(k=>snap(k.slice(c.length+1),data[k]));
+      next({docs,size:docs.length,empty:!docs.length,docChanges:()=>[],metadata:meta}); })});
+  return {doc:docRef,collection:col};
+}
+
+let base;
+if(configured){ firebase.initializeApp(CONFIG.firebase); base=firebase.firestore(); }
+else { base=localDb(); console.warn("Firebase sin configurar: los datos se guardan solo en este navegador."); }
+
+// Las escrituras de la liga piden el PIN (una vez por dispositivo); las palabras de La Palabreja no
+const FREE=["palabras"];
+const wrapDoc=(r,free)=>{ const ok=()=>free||askPin(); return {id:r.id,path:r.path,get:()=>r.get(),onSnapshot:(n,e)=>r.onSnapshot(n,e),
+  set:v=>ok()?Promise.resolve(r.set(v)).catch(mapErr):noPin(),
+  update:v=>ok()?Promise.resolve(r.update(v)).catch(mapErr):noPin(),
+  delete:()=>ok()?Promise.resolve(r.delete()).catch(mapErr):noPin()}; };
+const db={doc:p=>wrapDoc(base.doc(p),FREE.includes(p.split("/")[0])),collection:c=>{ const col=base.collection(c), free=FREE.includes(c); return {path:c,
+  doc:id=>wrapDoc(id?col.doc(id):col.doc(),free),
+  add:v=>(free||askPin())?Promise.resolve(col.add(v)).then(r=>wrapDoc(r,free)).catch(mapErr):noPin(),
+  onSnapshot:(n,e)=>col.onSnapshot(n,e)}; }};
+
+let uid; try{ uid=localStorage.getItem("liguilla-uid"); if(!uid){ uid="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,8); localStorage.setItem("liguilla-uid",uid); } }catch(e){ uid="anon"; }
+const user={id:async()=>uid,can:async()=>true,canEdit:async()=>unlocked,isOwner:async()=>unlocked};
+const api={db,user};
+window.claude={use:async n=>api[n]||null};
+})();
+</script>
+<script>
+// Torneo "whist" para 8: en cada vuelta cada jugador juega 1 vez con cada compañero y 2 veces contra cada rival.
+const ROUNDS=[
+  [[[0,1],[2,3]],[[4,5],[6,7]]],
+  [[[0,2],[4,6]],[[1,3],[5,7]]],
+  [[[0,3],[4,7]],[[1,2],[5,6]]],
+  [[[0,4],[1,5]],[[2,6],[3,7]]],
+  [[[0,5],[2,7]],[[1,4],[3,6]]],
+  [[[0,6],[3,5]],[[1,7],[2,4]]],
+  [[[0,7],[1,6]],[[2,5],[3,4]]]
+];
+const ORDERS=[[0,1,2,3,4,5,6],[3,0,4,1,5,2,6],[5,3,1,6,4,2,0]];
+const DEFAULT_CFG={name:"Liguilla de los Miércoles",players:["Jugador 1","Jugador 2","Jugador 3","Jugador 4","Jugador 5","Jugador 6","Jugador 7","Jugador 8"],start:"2026-11-11",vueltas:2,skips:[]};
+
+let cfg={...DEFAULT_CFG}, results={}, db=null, canWrite=null, readOnly=false, loaded=false, loadNote="", editing=null, editErr="";
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pname=i=>(cfg.players&&cfg.players[i])||("Jugador "+(i+1));
+const tname=t=>pname(t[0])+" y "+pname(t[1]);
+const fmt=d=>d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"});
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+
+function schedule(){
+  const out=[]; const skips=new Set(cfg.skips||[]);
+  let d=new Date((cfg.start||DEFAULT_CFG.start)+"T12:00:00");
+  while(d.getDay()!==3) d.setDate(d.getDate()+1);
+  let n=1;
+  const v=Math.min(3,Math.max(1,cfg.vueltas||2));
+  for(let k=0;k<v;k++) for(const r of ORDERS[k]){
+    while(skips.has(iso(d))) d.setDate(d.getDate()+7);
+    out.push({n,vuelta:k+1,date:new Date(d),matches:ROUNDS[r].map((m,i)=>({id:"j"+n+"p"+(i+1),a:m[0],b:m[1]}))});
+    d.setDate(d.getDate()+7); n++;
+  }
+  return out;
+}
+
+// Devuelve {sa,sb,ga,gb,winner:"a"|"b"} o null si el resultado no está completo
+function evalSets(sets){
+  if(!Array.isArray(sets)) return null;
+  let sa=0,sb=0,ga=0,gb=0;
+  for(const s of sets){ if(!s||s.length!==2) continue; const [x,y]=s.map(Number);
+    if(!Number.isFinite(x)||!Number.isFinite(y)||x===y) continue;
+    ga+=x; gb+=y; x>y?sa++:sb++; }
+  if(sa===sb) return null;
+  return {sa,sb,ga,gb,winner:sa>sb?"a":"b"};
+}
+
+function standings(weeks){
+  const st=[...Array(8)].map((_,i)=>({i,pj:0,pg:0,pp:0,sf:0,sc:0,jf:0,jc:0,pts:0,form:[]}));
+  for(const w of weeks) for(const m of w.matches){
+    const r=results[m.id]; const e=r&&evalSets(r.sets); if(!e) continue;
+    // 2-0: 3 pts ganador, 0 perdedor · 2-1: 2 pts ganador, 1 perdedor
+    const tight=Math.min(e.sa,e.sb)>0;
+    const side=(t,mine,their,won)=>t.forEach(p=>{const s=st[p];s.pj++;won?s.pg++:s.pp++;s.pts+=won?(tight?2:3):(tight?1:0);s.sf+=mine[0];s.sc+=their[0];s.jf+=mine[1];s.jc+=their[1];s.form.push(won?"w":"l")});
+    side(m.a,[e.sa,e.ga],[e.sb,e.gb],e.winner==="a");
+    side(m.b,[e.sb,e.gb],[e.sa,e.ga],e.winner==="b");
+  }
+  st.forEach(s=>{s.pct=s.pj?s.pg/s.pj:0});
+  return st.sort((x,y)=>y.pts-x.pts||y.pct-x.pct||(y.sf-y.sc)-(x.sf-x.sc)||(y.jf-y.jc)-(x.jf-x.jc)||y.jf-x.jf||pname(x.i).localeCompare(pname(y.i)));
+}
+
+function currentWeek(weeks){
+  return weeks.find(w=>w.matches.some(m=>!(results[m.id]&&evalSets(results[m.id].sets))))||null;
+}
+
+function route(){ const h=location.hash.slice(1); return ["clasificacion","jornadas","ajustes"].includes(h)?h:"clasificacion"; }
+
+
+function render(){
+  const pj=location.hash==="#palabreja"||location.hash==="#palabreja-prueba";
+  document.body.classList.toggle("mode-pj",pj);
+  document.querySelector("header.band").hidden=pj; document.querySelector("main").hidden=pj;
+  document.getElementById("pj").hidden=!pj;
+  document.getElementById("sw-liga").className=pj?"":"on-liga"; document.getElementById("sw-pj").className=pj?"on-pj":"";
+  document.getElementById("sw-liga").setAttribute("aria-current",pj?"false":"page"); document.getElementById("sw-pj").setAttribute("aria-current",pj?"page":"false");
+  if(pj) return;
+  const weeks=schedule(); const cur=currentWeek(weeks);
+  document.getElementById("title").textContent=cfg.name||DEFAULT_CFG.name;
+  document.getElementById("next").textContent=cur?("Próxima: jornada "+cur.n+" · "+fmt(cur.date)):"Liga terminada";
+  const v=route();
+  document.querySelectorAll("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===v?"page":"false"));
+  document.getElementById("tab-ajustes").hidden=!(canWrite!==false&&!readOnly&&db);
+  const status=!db&&loaded?'<p class="status">Los resultados no se pueden cargar aquí. Se muestra el calendario sin resultados.</p>'
+    :!loaded?'<p class="status">'+(loadNote||"Cargando resultados…")+'</p>':"";
+  const view=document.getElementById("view");
+  if(v==="jornadas") view.innerHTML=status+renderWeeks(weeks,cur);
+  else if(v==="ajustes") view.innerHTML=status+renderSettings();
+  else view.innerHTML=status+renderTable(weeks);
+}
+
+function renderTable(weeks){
+  const st=standings(weeks); const played=st.some(s=>s.pj);
+  const rows=st.map((s,k)=>{
+    const f=s.form.slice(-5); while(f.length<5) f.unshift("e");
+    return `<tr class="${k===0&&played?"lead":""}"><td class="pos">${k+1}</td><td class="name">${esc(pname(s.i))}</td>
+      <td>${s.pj}</td><td>${s.pg}</td><td>${s.pp}</td><td>${s.sf-s.sc>0?"+":""}${s.sf-s.sc}</td><td>${s.jf-s.jc>0?"+":""}${s.jf-s.jc}</td>
+      <td><span class="form">${f.map(x=>`<i class="${x}">${x==="w"?"V":x==="l"?"D":""}</i>`).join("")}</span></td><td class="pts">${s.pts}</td></tr>`}).join("");
+  return `<div class="row" style="justify-content:space-between"><h2>Clasificación individual</h2></div>
+  ${played?"":'<p class="note">Aún no hay partidos jugados. La tabla se rellena sola en cuanto se apunte el primer resultado en Jornadas.</p>'}
+  <div class="card tablebox"><table><thead><tr><th>#</th><th class="name">Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Sets</th><th>Juegos</th><th>Últimos 5</th><th>Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="legend"><span>PJ jugados · PG ganados · PP perdidos</span><span>Sets y Juegos: diferencia a favor/en contra</span><span>Ganar 2-0 = 3 pts · Ganar 2-1 = 2 pts · Perder 1-2 = 1 pt · Perder 0-2 = 0 pts</span></div>
+  <section class="card rules"><h3>Por qué es justa</h3><ul>
+    <li>Cada vuelta son 7 miércoles. En ella cada uno juega exactamente una vez con cada uno de los otros 7 como pareja.</li>
+    <li>Y se enfrenta exactamente 2 veces a cada rival. Nadie tiene la suerte de ir siempre con el mejor ni de evitarlo.</li>
+    <li>Todos juegan un partido cada miércoles: 2 partidos por jornada, 4 contra 4.</li>
+    <li>Los puntos son individuales y los suman los dos de la pareja. Ganar 2-0 da 3 puntos y el rival se queda con 0. Ganar 2-1 da 2 puntos y el rival se lleva 1 por haber ganado un set.</li>
+    <li>Empates en puntos: % de victorias, luego diferencia de sets, luego diferencia de juegos.</li>
+    <li>Si alguien falta, juega un suplente. El partido cuenta solo para los tres titulares que lo jueguen; mejor recuperarlo otro día si se puede.</li>
+  </ul></section>`;
+}
+
+function renderWeeks(weeks,cur){
+  let html='<h2>Jornadas</h2>'; let lastV=0;
+  const edit=canWrite!==false&&!readOnly&&db;
+  for(const w of weeks){
+    if(w.vuelta!==lastV){ html+=`<div class="vuelta">Vuelta ${w.vuelta}</div>`; lastV=w.vuelta; }
+    const done=w.matches.every(m=>results[m.id]&&evalSets(results[m.id].sets));
+    const isCur=cur&&cur.n===w.n;
+    html+=`<section class="card week ${isCur?"current":""}"><div class="week-head"><h3>Jornada ${w.n}</h3>
+      <span class="row"><span class="date">${fmt(w.date)}</span>${isCur?'<span class="chip now">Próxima</span>':done?'<span class="chip done">Jugada</span>':""}</span></div>`;
+    w.matches.forEach((m,i)=>{
+      const r=results[m.id]; const e=r&&evalSets(r.sets);
+      const score=e?r.sets.filter(s=>s&&s.length===2&&s[0]!==s[1]&&s[0]!==null).map(s=>s[0]+"-"+s[1]).join(" / "):"";
+      html+=`<div class="match">
+        <div class="team ${e&&e.winner==="a"?"won":""}">${esc(pname(m.a[0]))}<br>${esc(pname(m.a[1]))}</div>
+        <div class="score ${e?"":"empty"}">${e?esc(score):"vs"}</div>
+        <div class="team b ${e&&e.winner==="b"?"won":""}">${esc(pname(m.b[0]))}<br>${esc(pname(m.b[1]))}</div>
+        ${editing===m.id?renderEditor(m):edit?`<div class="actions"><button class="link" data-edit="${m.id}">${e?"Cambiar resultado":"Apuntar resultado"}</button></div>`:""}
+      </div>`;
+    });
+    html+='</section>';
+  }
+  return html;
+}
+
+function renderEditor(m){
+  const r=results[m.id]; const sets=(r&&r.sets)||[];
+  const cell=(si,t)=>{const v=sets[si]&&sets[si][t]; return `<input type="number" min="0" max="7" inputmode="numeric" id="in-${m.id}-s${si}-${t}" value="${v===undefined||v===null?"":v}" aria-label="Set ${si+1}">`;};
+  return `<div class="editor"><div class="sets">
+    <span></span><span class="lbl">Set 1</span><span class="lbl">Set 2</span><span class="lbl">Set 3</span>
+    <span class="tn">${esc(tname(m.a))}</span>${cell(0,0)}${cell(1,0)}${cell(2,0)}
+    <span class="tn">${esc(tname(m.b))}</span>${cell(0,1)}${cell(1,1)}${cell(2,1)}
+  </div>${editErr?`<p class="err">${esc(editErr)}</p>`:""}
+  <div class="row"><button class="primary" data-save="${m.id}">Guardar</button><button data-cancel="1">Cancelar</button>${r?`<button class="link" data-clear="${m.id}">Borrar resultado</button>`:""}</div></div>`;
+}
+
+function renderSettings(){
+  const p=cfg.players||DEFAULT_CFG.players;
+  return `<h2>Ajustes</h2><section class="card settings">
+    <label for="s-name">Nombre de la liga<input id="s-name" value="${esc(cfg.name||"")}"></label>
+    <div><p class="note" style="margin-bottom:8px">Jugadores (el orden no importa: el calendario ya reparte parejas y rivales por igual)</p>
+    <div class="grid2">${p.map((n,i)=>`<input id="s-p${i}" value="${esc(n)}" aria-label="Jugador ${i+1}">`).join("")}</div></div>
+    <div class="grid2"><label for="s-start">Primer miércoles<input type="date" id="s-start" value="${esc(cfg.start||"")}"></label>
+    <label for="s-v">Vueltas<select id="s-v">${[1,2,3].map(n=>`<option value="${n}" ${(cfg.vueltas||2)===n?"selected":""}>${n} (${n*7} miércoles)</option>`).join("")}</select></label></div>
+    <div><p class="note" style="margin-bottom:8px">Miércoles sin liga (festivos, vacaciones). Las jornadas se corren una semana.</p>
+    <div class="row"><input type="date" id="s-skip" style="max-width:200px"><button data-addskip="1">Añadir</button></div>
+    <div class="skips" style="margin-top:8px">${(cfg.skips||[]).map(s=>`<span>${fmt(new Date(s+"T12:00:00"))}<button class="link" data-rmskip="${s}" aria-label="Quitar">×</button></span>`).join("")}</div></div>
+    ${editErr?`<p class="err">${esc(editErr)}</p>`:""}
+    <div class="row"><button class="primary" data-savecfg="1">Guardar ajustes</button><span class="note" id="saved"></span></div>
+  </section>`;
+}
+
+function readCfgForm(){
+  const players=[...Array(8)].map((_,i)=>document.getElementById("s-p"+i).value.trim()||("Jugador "+(i+1)));
+  return {...cfg,name:document.getElementById("s-name").value.trim()||DEFAULT_CFG.name,players,
+    start:document.getElementById("s-start").value||DEFAULT_CFG.start,vueltas:Number(document.getElementById("s-v").value)||2};
+}
+
+async function write(fn){
+  try{ editErr=""; await fn(); return true; }
+  catch(e){ if(e&&e.code==="pin"){ editErr="Hace falta el PIN del grupo para guardar."; } else if(e&&e.code==="invalid_argument"){ readOnly=true; editErr="No tienes permiso para guardar cambios en esta liga."; }
+    else if(e&&e.code==="unavailable"){ editErr="No se ha podido guardar. Revisa la conexión y vuelve a intentarlo."; }
+    else editErr="No se ha podido guardar ("+((e&&e.code)||"error")+")."; render(); return false; }
+}
+
+document.addEventListener("click",async ev=>{
+  const b=ev.target.closest("button"); if(!b) return;
+  if(b.dataset.edit){ editing=b.dataset.edit; editErr=""; render(); return; }
+  if(b.dataset.cancel){ editing=null; editErr=""; render(); return; }
+  if(b.dataset.clear){ const id=b.dataset.clear; if(await write(()=>db.collection("resultados").doc(id).delete())){ editing=null; render(); } return; }
+  if(b.dataset.save){
+    const id=b.dataset.save; const sets=[];
+    for(let s=0;s<3;s++){ const a=document.getElementById(`in-${id}-s${s}-0`).value, c=document.getElementById(`in-${id}-s${s}-1`).value;
+      if(a===""&&c==="") continue; if(a===""||c===""){ editErr="Falta un número en el set "+(s+1)+"."; render(); return; }
+      if(Number(a)===Number(c)){ editErr="Un set no puede acabar en empate (set "+(s+1)+")."; render(); return; }
+      sets.push([Number(a),Number(c)]); }
+    if(!evalSets(sets)){ editErr="El resultado tiene que tener un ganador: más sets ganados por una pareja."; render(); return; }
+    if(await write(()=>db.collection("resultados").doc(id).set({sets,updatedAt:new Date().toISOString()}))){ editing=null; render(); }
+    return;
+  }
+  if(b.dataset.addskip){ const v=document.getElementById("s-skip").value; if(!v) return;
+    const next=readCfgForm(); next.skips=[...new Set([...(cfg.skips||[]),v])].sort(); cfg=next; render(); return; }
+  if(b.dataset.rmskip){ const next=readCfgForm(); next.skips=(cfg.skips||[]).filter(s=>s!==b.dataset.rmskip); cfg=next; render(); return; }
+  if(b.dataset.savecfg){ const next=readCfgForm();
+    if(await write(()=>db.doc("liga/config").set(next))){ cfg=next; render(); const s=document.getElementById("saved"); if(s) s.textContent="Guardado"; } }
+});
+window.addEventListener("hashchange",()=>{editing=null;editErr="";render();});
+
+render();
+(async()=>{
+  const c=window.claude;
+  db=c&&c.use?await c.use("db"):null;
+  if(!db){ loaded=true; render(); return; }
+  const user=await c.use("user");
+  if(user){ try{ canWrite=await user.can("data.write"); }catch(e){ canWrite=null; } }
+  const timer=setTimeout(()=>{ if(!loaded){ loadNote="Los resultados aún no se pueden cargar. Puede que los datos no estén al día."; render(); } },10000);
+  let gotCfg=false,gotRes=false;
+  const done=()=>{ if(gotCfg&&gotRes){ loaded=true; clearTimeout(timer); } };
+  db.doc("liga/config").onSnapshot(s=>{ if(s.exists) cfg={...DEFAULT_CFG,...s.data()}; const first=!gotCfg; if(!s.metadata.fromCache){gotCfg=true;done();} if(first||route()!=="ajustes") render(); },
+    ()=>{ gotCfg=true; done(); render(); });
+  db.collection("resultados").onSnapshot(q=>{ const r={}; q.docs.forEach(d=>{r[d.id]=d.data();}); results=r; if(!q.metadata.fromCache){gotRes=true;done();} if(!editing) render(); },
+    ()=>{ gotRes=true; done(); render(); });
+})();
+
+// ===== La Palabreja (independiente de la liga) =====
+(()=>{
+const WORDS=[["TAPEO", "Ir de tapas. En Granada, con cada caña viene la tapa sin pedirla."], ["ESPELUZNA", "Despeinada. «Vas espeluzná»."], ["MANDAILLO", "Hacer un mandaíllo: irse sin decir adónde."], ["FOLLAZA", "Bebida casera de moscatel y vino blanco."], ["POLLUO", "Riquísimo, dicho de la comida."], ["COLLEJO", "Bonito, resultón."], ["GOLEOR", "Cotilla, entrometido."], ["GUASA", "Gracia, cachondeo. «Tiene más guasa que nadie»."], ["GAPO", "Escupitajo, lo mismo que un galipo."], ["CHAVEA", "Niño, chiquillo."], ["GILON", "Torpe, poco espabilado."], ["CHUPACHARCOS", "El desatascador."], ["LA VIN COMPAE", "¡La Virgen, compadre! Exclamación de sorpresa o de queja."], ["ROSETAS", "Palomitas de maíz."], ["TOTO", "Moño."], ["ESCURCUÑAR", "Rebuscar en cajones y armarios sin saber muy bien qué buscas."], ["BULANICO", "La pelusilla que vuela en primavera y hace estornudar."], ["ESCACHIFOLLAO", "Roto, que ya no funciona."], ["ARREMPUJA", "Sombrero de paja de ala ancha para trabajar en el campo."], ["CURCUSILLA", "El coxis."], ["PISHA", "Amigo, colega. Muy gaditano, pero se entiende en toda Andalucía."], ["CAUCHIL", "Boca de riego."], ["BOCANA", "Una bocaná: una tontería. «No digas bocanás»."], ["FELPA", "Diadema para el pelo."], ["FOLLAERO", "Lío, jaleo."], ["RAIO", "Persona desagradable."], ["BUHERO", "Agujero o hendidura."], ["BALATE", "Muro de piedra que sujeta la tierra entre dos bancales."], ["BANCAL", "Terraza de cultivo escalonada en la sierra."], ["ARREA", "¡Arrea! Expresión de sorpresa."], ["LACHE", "Vergüenza ajena. «Me da lache verlo»."], ["ENNORTAO", "Despistado, en las nubes."], ["CHAVICO", "Moneda de poco valor. «No tengo ni un chavico»."], ["JARTO", "Harto, lleno. «Estoy jarto de comer»."], ["MALA FONDINGA", "Mal carácter de verdad, un escalón por debajo de la malafollá."], ["PORTAÑUELA", "La bragueta del pantalón."], ["APOLLARDAO", "Atontado, empanado."], ["ENTALABARTAO", "Con todo a medio hacer."], ["ROILLA", "Trapo viejo para limpiar."], ["TENGUERENGUE", "En equilibrio precario, a punto de caerse."], ["TINMAYAO", "¡Tengo hambre!"], ["RECOLLEJO", "Persona muy clásica que parece mayor de lo que es."], ["GUARRAZO", "Caída fuerte, un buen costalazo."], ["PESAO", "Pesado, cansino. «No seas pesao»."], ["GAÑAN", "Bruto, poco fino."], ["FLAMA", "Calor sofocante, ese bochorno de agosto."], ["FRANGOLLERO", "Chapucero, que nunca acaba nada bien."], ["RECONCOMIA", "Mala conciencia, ese runrún por dentro."], ["GUARNIO", "Reventado de tanto trabajar."], ["MAS PALLAILLA", "Un poquito más allá, en la misma dirección."], ["ENGAÑIFA", "Lo que acompaña a las migas."], ["JALEO", "Ruido, alboroto. También un cante flamenco."], ["GALVANA", "La flojera que se te queda después de una siesta larga."], ["ENCARTAR", "Venir bien. «Si encarta, me paso»."], ["MIHILLA", "Un poquito. La unidad de medida granaína por excelencia."], ["CIPOLLO", "Quien dice tonterías sin ninguna gracia."], ["PIPOTE", "Botijo."], ["RILES", "Valor, redaños."], ["TAH AVIAO", "¡La llevas clara!"], ["DARRO", "Desagüe. También el río que pasa a los pies de la Alhambra."], ["CHOCO", "Sepia. El choco frito no falta en una buena fritura."], ["AVIOS", "Lo necesario para algo, sobre todo los ingredientes de un guiso."], ["ALLABAJOS", "El centro de Granada visto desde el Albaicín. «Me bajo allabajos»."], ["CHOTO", "Cabrito. El choto al ajillo es un clásico de las barras granadinas."], ["HABAS", "Las habas con jamón, plato típico de la vega de Granada."], ["AMOTO", "La moto. «Me he comprao una amoto»."], ["VOLAERA", "Molinillo de papel. También, una idea absurda."], ["ENGURRUÑIO", "Tacaño, agarrado."], ["SABORIO", "Antipático, rancio."], ["RETESTINAO", "Retorcido, que le ve doble sentido a todo."], ["ANCA", "A casa de. «Vamos anca mi abuela»."], ["TARASCA", "Una tarascá: un arañazo."], ["LOMINMITICO", "Lo mismo mismito: clavaíto, idéntico."], ["SOMORMUJO", "Persona sin gracia que va a lo suyo calladita."], ["ESPIZCAR", "Desmenuzar en trocitos."], ["TIESO", "Sin un duro. «Estoy tieso hasta final de mes»."], ["REGOMELLO", "Preocupación, desazón por alguien o por algo."], ["SALAO", "Gracioso, con salero."], ["FATIGA", "Vergüenza, apuro. «Me da fatiga decírselo»."], ["SIESO", "Antipático, borde."], ["MEQUE", "Puñetazo en la cara."], ["PORCINO", "Chichón."], ["SAQUITO", "Jersey."], ["MAURO", "Bobo, atontado."], ["REPULLO", "Susto, sobresalto."], ["PECHA", "Una pechá: un montón, casi siempre de algo malo. «Una pechá de trabajo»."], ["LONGUI", "Hacerse el longui: hacerse el despistado a propósito."], ["CANCANEAR", "Vagar sin rumbo, perder el tiempo."], ["BAHIL", "Recogedor metálico para la basura."], ["MITITILLA", "Una pizca de nada, más pequeña que una mihilla."], ["RACA", "Miedo, mal fario. «Me mete raca»."], ["CHUCHURRIO", "Mustio, estropeado, que ha perdido la buena pinta."], ["PARRAQUE", "Sofocón, disgusto gordo."], ["TOMIZA", "Cuerda fina de esparto."], ["CALAMONAZO", "Golpe en la cabeza."], ["JARTA", "Una jartá: una cantidad enorme. «Una jartá de gente»."], ["POYETE", "Banco de piedra o de obra para sentarse en la puerta."], ["REPELUZNO", "Escalofrío de frío o de miedo."], ["DESPECHERETAO", "Con mucho escote, con el pecho al aire."], ["TRAPAJAZO", "Golpe fuerte."], ["MISTO", "Cerilla."], ["FARFOLLAS", "Presumido que habla sin saber."], ["RESCULIZO", "Resbaladizo."], ["ESFARATAO", "Desbaratado, hecho polvo."], ["AVIAR", "Cocinar, preparar la comida."], ["PARPULLERO", "Pelota, que hace la pelota."], ["REVENIO", "Comida que se ha puesto rancia o blanda con el calor."], ["POLLARDEAR", "Hacer el tonto."], ["TERNICO", "Tiernecito. Dicho de una persona, buenazo."], ["GALIPO", "Escupitajo."], ["NONINA", "«No, ni na»: doble negación que en realidad quiere decir que sí."], ["MARUÑO", "Arisco, como un gato salvaje."], ["ZAGAL", "Chaval, muchacho. Muy de la Andalucía oriental."], ["ESPERCOJAO", "Limpísimo, impecable."], ["LAILLAZO", "Cansancio extremo."], ["CHISPILLA", "Un poquito, menos que una mihilla."], ["FURULLO", "Caca, dicho con finura."], ["CUCHI", "¡Caramba! «¡Cuchi, qué bonico!»."], ["CIRIBULLE", "Persona que no para quieta ni deja estar a nadie."], ["MALAFOLLA", "La famosa malafollá granaína: sarcasmo seco con su punto de gracia."], ["PERRA", "Coger una perra: empeñarse en algo, como un niño con rabieta."], ["PERDICES", "Patatas asadas que se vendían por la calle."], ["BILORDO", "Tontorrón que, sin querer, acaba metiéndote en líos."], ["COPLA", "Canción popular andaluza."], ["FENECER", "Morir."], ["BULLA", "Prisa. «Qué bulla llevas, illo»."], ["MANCAJE", "Azada."], ["NACAPACA", "¡Ven aquí ahora mismo!"], ["PAPAS", "Patatas. Las papas a lo pobre, de toda la vida."]];
+const BASE=WORDS.map((w,i)=>({id:"b"+i,phrase:w[0],def:w[1]}));
+const WEIGHT=8; // las añadidas tienen 8 veces más opciones de salir
+const EPOCH=new Date("2026-11-10T12:00:00");
+const dayIdx=()=>{const t=new Date();t.setHours(12,0,0,0);return Math.round((t-EPOCH)/864e5);};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d;}catch(e){return d;}};
+const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+const $=id=>document.getElementById(id);
+const X='<button class="ib x" data-close="1" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+
+let ADDED=[], ready=false, slow=false, db=null, me=null, canAdd=null, isOwner=false, addMsg="", addErr="";
+let game=null, stats=load("palabreja-stats",{played:0,wins:0,streak:0,best:0,last:null,dist:[0,0,0,0,0,0]});
+let revealRow=-1, popAt=-1, shake=false, modal=null, toastT=null, cdT=null;
+
+// Calendario de palabras: igual para todos porque solo depende del día y de la lista compartida.
+// Una palabra añadida entra en el sorteo a partir del día siguiente; una quitada deja de salir al día siguiente.
+const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+let sched=[], schedKey=null;
+function dayWord(d){
+  const key=ADDED.map(a=>a.id+":"+a.addedDay+":"+(a.deletedDay??"")).join("|");
+  if(key!==schedKey||sched.length<=d){
+    sched=[]; schedKey=key; const last={}; const D=Math.max(d,dayIdx()+1);
+    for(let i=0;i<=D;i++){
+      if(i===0){ sched.push(BASE[0]); last[BASE[0].id]=0; continue; }
+      const pool=BASE.map(b=>({e:b,w:1})).concat(ADDED.filter(a=>a.addedDay<i&&(a.deletedDay==null||i<=a.deletedDay)).map(a=>({e:a,w:WEIGHT})));
+      const gap=Math.min(pool.length-1,100);
+      let cand=pool.filter(p=>last[p.e.id]===undefined||i-last[p.e.id]>gap); if(!cand.length) cand=pool;
+      let r=rng(i*7919+17)()*cand.reduce((s,p)=>s+p.w,0), pick=cand[cand.length-1];
+      for(const p of cand){ r-=p.w; if(r<0){ pick=p; break; } }
+      sched.push(pick.e); last[pick.e.id]=i;
+    }
+  }
+  return sched[d];
+}
+
+// Modo prueba (#palabreja-prueba): eliges palabra y nada se guarda
+const isTest=()=>location.hash==="#palabreja-prueba";
+const isPj=()=>location.hash==="#palabreja"||isTest();
+let testEntry=BASE.find(w=>w.phrase==="MALA FONDINGA")||BASE[0];
+function freshGame(){
+  if(isTest()) return {idx:-1,entry:testEntry,guesses:[],cur:"",test:true};
+  const idx=dayIdx(), entry=dayWord(idx); const g=load("palabreja-game",null);
+  if(g&&g.idx===idx&&Array.isArray(g.guesses)&&(g.phrase===entry.phrase||(!g.phrase&&g.guesses.length===0))) return {...g,entry,phrase:entry.phrase};
+  if(g&&g.idx===idx&&!g.phrase&&entry.phrase==="TAPEO") return {...g,entry,phrase:entry.phrase};
+  return {idx,entry,phrase:entry.phrase,guesses:[],cur:""};
+}
+function saveGame(){ if(!game.test){ const {entry,...rest}=game; store("palabreja-game",rest); } }
+
+// Las expresiones llevan espacios: solo se adivinan las letras, los huecos vienen dados
+function score(g,ans){
+  const n=ans.length, res=Array(n).fill("a"), left={};
+  for(let i=0;i<n;i++){ if(g[i]===ans[i]) res[i]="c"; else left[ans[i]]=(left[ans[i]]||0)+1; }
+  for(let i=0;i<n;i++){ if(res[i]!=="c"&&left[g[i]]){ res[i]="p"; left[g[i]]--; } }
+  return res;
+}
+function state(){ const phrase=game.entry.phrase, ans=phrase.replace(/ /g,""); const won=game.guesses.includes(ans); return {phrase,ans,n:ans.length,won,over:won||game.guesses.length>=6}; }
+function layout(phrase,cell){ let k=0, out=""; for(const ch of phrase){ out+=ch===" "?'<div class="gap"></div>':cell(k++); } return out; }
+
+function finish(won){
+  if(game.test||stats.last===game.idx) return;
+  stats.played++;
+  if(won){ stats.wins++; stats.dist[game.guesses.length-1]++; stats.streak=stats.last===game.idx-1?stats.streak+1:1; stats.best=Math.max(stats.best,stats.streak); }
+  else stats.streak=0;
+  stats.last=game.idx; store("palabreja-stats",stats);
+}
+
+function toast(t){ const el=$("pj-toast"); el.textContent=t; el.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{el.hidden=true;},1600); }
+
+function press(k){
+  if(modal||!ready||!game) return;
+  if(!game.test&&game.idx!==dayIdx()) game=freshGame();
+  const st=state(); if(st.over) return;
+  shake=false; revealRow=-1; popAt=-1;
+  if(k==="ENTER"){
+    if(game.cur.length<st.n){ toast("Faltan letras"); shake=true; }
+    else {
+      game.guesses.push(game.cur); game.cur=""; revealRow=game.guesses.length-1;
+      const s=state();
+      if(s.over){ finish(s.won); if(!s.won) toast(s.phrase); setTimeout(()=>openModal("stats"),s.won?900+s.n*60:1700); }
+    }
+  } else if(k==="DEL") game.cur=game.cur.slice(0,-1);
+  else if(/^[A-ZÑ]$/.test(k)&&game.cur.length<st.n){ game.cur+=k; popAt=game.cur.length-1; }
+  saveGame(); draw();
+}
+
+function allEntries(){ return BASE.concat(ADDED.filter(a=>a.deletedDay==null)); }
+function drawTestBar(){
+  let bar=$("pj-test");
+  if(!isTest()){ if(bar) bar.hidden=true; return; }
+  if(!bar){
+    bar=document.createElement("div"); bar.id="pj-test"; bar.className="testbar";
+    bar.innerHTML=`<span class="tb-l">Modo prueba · no cuenta</span><select id="pj-test-sel" aria-label="Palabra de prueba"></select><button data-testrand="1">Al azar</button>`;
+    document.querySelector("#pj .play").prepend(bar);
+    bar.querySelector("select").addEventListener("change",e=>{ const f=allEntries().find(x=>x.id===e.target.value); if(f){ testEntry=f; game=freshGame(); closeModal(); draw(); } });
+  }
+  const len=p=>p.replace(/ /g,"").length;
+  const opts=allEntries().slice().sort((a,b)=>len(a.phrase)-len(b.phrase)||a.phrase.localeCompare(b.phrase));
+  const sel=$("pj-test-sel"); const html=opts.map(o=>`<option value="${esc(o.id)}">${esc(o.phrase)} (${len(o.phrase)})${o.id[0]==="u"?" · añadida":""}</option>`).join("");
+  if(sel.dataset.h!==html){ sel.innerHTML=html; sel.dataset.h=html; }
+  sel.value=testEntry.id; bar.hidden=false;
+}
+
+function draw(){
+  drawTestBar();
+  if(!ready||!game){
+    $("pj-num").textContent="Cargando la palabra del día…";
+    $("pj-board").innerHTML=""; $("pj-kb").innerHTML=""; $("pj-again").hidden=true; return;
+  }
+  const s=state(), keys={}, rank={a:1,p:2,c:3};
+  const words=s.phrase.split(" ").length;
+  $("pj-num").textContent=(game.test?"Prueba":"Palabra nº "+(game.idx+1))+" · "+s.n+" letras"+(words>1?" · "+words+" palabras":"");
+  let html="";
+  for(let r=0;r<6;r++){
+    const g=game.guesses[r]; let cells="";
+    if(g){ const sc=score(g,s.ans); cells=layout(s.phrase,i=>`<div class="tile ${sc[i]} ${r===revealRow?"reveal":""}" style="animation-delay:${i*Math.min(90,900/s.n)}ms">${g[i]}</div>`); for(let i=0;i<s.n;i++){ if(!keys[g[i]]||rank[sc[i]]>rank[keys[g[i]]]) keys[g[i]]=sc[i]; } }
+    else if(r===game.guesses.length&&!s.over){ cells=layout(s.phrase,i=>{ const ch=game.cur[i]||""; return `<div class="tile ${ch?"filled":""} ${i===popAt?"pop":""}">${ch}</div>`; }); }
+    else cells=layout(s.phrase,()=>'<div class="tile"></div>');
+    html+=`<div class="grow ${r===game.guesses.length&&shake?"shake":""}">${cells}</div>`;
+  }
+  const gaps=words-1;
+  $("pj-board").style.setProperty("--n",String(s.n+gaps*0.5));
+  $("pj-board").style.setProperty("--gaps",String(s.n-1+gaps));
+  $("pj-board").innerHTML=html;
+  $("pj-again").hidden=!s.over;
+  $("pj-kb").innerHTML=["QWERTYUIOP","ASDFGHJKLÑ","ZXCVBNM"].map((row,ri)=>`<div class="krow">${ri===2?'<button class="wide" data-key="ENTER">Enviar</button>':""}${[...row].map(ch=>`<button class="${keys[ch]||""}" data-key="${ch}">${ch}</button>`).join("")}${ri===2?'<button class="wide" data-key="DEL" aria-label="Borrar">⌫</button>':""}</div>`).join("");
+}
+
+function tileRow(word,marks){ return `<div class="ex">${[...word].map((ch,i)=>`<div class="tile ${marks[i]||""}">${ch}</div>`).join("")}</div>`; }
+
+function sheetHelp(){
+  return `${X}<h2 id="pj-mtitle">Cómo se juega</h2>
+  <p>Adivina la palabra granaína o andaluza del día en 6 intentos. Cada día tiene un largo distinto, y algunas son expresiones de dos o tres palabras: los huecos entre palabras ya vienen marcados y solo escribes las letras.</p>
+  <p>Van sin tildes. La Ñ cuenta como letra.</p>
+  ${tileRow("BULLA",["c"])}<p><b style="color:var(--ink)">B</b> está en la palabra y en su sitio.</p>
+  ${tileRow("CHOTO",["","","p"])}<p><b style="color:var(--ink)">O</b> está en la palabra, pero en otro sitio.</p>
+  ${tileRow("GUASA",["","","","a"])}<p><b style="color:var(--ink)">S</b> no está en la palabra.</p>
+  <hr class="rule"><p>Cada día a medianoche sale una palabra nueva, la misma para todos. Con el botón + podéis añadir palabras vuestras, que salen más a menudo que las demás.</p>`;
+}
+function hms(){ const n=new Date(), m=new Date(n); m.setHours(24,0,0,0); let t=Math.max(0,Math.floor((m-n)/1000)); const h=Math.floor(t/3600); t%=3600; return [h,Math.floor(t/60),t%60].map(x=>String(x).padStart(2,"0")).join(":"); }
+function sheetStats(){
+  const s=state(), w=game.entry;
+  const pct=stats.played?Math.round(stats.wins/stats.played*100):0, max=Math.max(1,...stats.dist);
+  const res=s.over?`<div class="result"><span class="t">${s.won?"¡Olé!":"Esta vez no"}</span>
+    <span class="reveal-word">${esc(w.phrase)}</span><p>${esc(w.def)}</p>${w.id[0]==="u"?'<p class="lbl">Palabra añadida por el grupo</p>':""}</div><hr class="rule">`:"";
+  return `${X}<h2 id="pj-mtitle">${s.over?"Resultado":"Tus números"}</h2>${res}
+  <div class="stats">${[[stats.played,"Jugadas"],[pct+"%","Aciertos"],[stats.streak,"Racha"],[stats.best,"Mejor racha"]].map(([v,l])=>`<div><b>${v}</b><span>${l}</span></div>`).join("")}</div>
+  <span class="lbl">Intentos para acertar</span>
+  <div class="dist">${stats.dist.map((n,i)=>`<div><span>${i+1}</span><i class="${s.won&&game.guesses.length===i+1?"hl":""}" style="width:${Math.max(8,n/max*100)}%">${n}</i></div>`).join("")}</div>
+  ${s.over?`<hr class="rule"><div class="foot"><div class="cd"><span class="lbl">Próxima palabra</span><b id="pj-cd">${hms()}</b></div><button class="btn" data-share="1">Copiar resultado</button></div>`:""}`;
+}
+function sheetDicc(){
+  const idx=dayIdx(), past=[], seen=new Set();
+  for(let i=idx-1;i>=0;i--){ const w=dayWord(i); if(!seen.has(w.id)){ seen.add(w.id); past.push(w); } }
+  return `${X}<h2 id="pj-mtitle">Diccionario</h2>
+  ${past.length?`<p>Palabras de días anteriores y lo que significan.</p><dl class="gloss">${past.map(p=>`<div><dt>${esc(p.phrase)}</dt><dd>${esc(p.def)}</dd></div>`).join("")}</dl>`
+    :'<p>Hoy es el primer día. Aquí irán apareciendo las palabras de días anteriores con su significado.</p>'}`;
+}
+function sheetAdd(){
+  const live=ADDED.filter(a=>a.deletedDay==null), mine=live.filter(a=>me&&a.by===me);
+  const row=a=>`<li><span><b>${esc(a.phrase)}</b> <small>${esc(a.def)}</small></span><button class="lnk" data-remove="${esc(a.docId)}">Quitar</button></li>`;
+  const can=db&&canAdd!==false;
+  return `${X}<h2 id="pj-mtitle">Añadir palabra</h2>
+  <p>Añade una palabra o expresión granaína (de 1 a 3 palabras). A partir de mañana entra en el sorteo y tiene 8 veces más opciones de salir que las de la lista.</p>
+  ${can?`<form id="pj-add" class="addform" novalidate>
+    <label for="pj-add-w">Palabra o expresión<input id="pj-add-w" maxlength="40" autocomplete="off" placeholder="Por ejemplo: ESTAR EMPANAO"></label>
+    <label for="pj-add-d">Qué significa<textarea id="pj-add-d" maxlength="200" rows="2" placeholder="Explícala como se la explicarías a un guiri"></textarea></label>
+    ${addErr?`<p class="err">${esc(addErr)}</p>`:""}${addMsg?`<p class="ok">${esc(addMsg)}</p>`:""}
+    <button class="btn" type="submit">Añadir</button>
+  </form>`:`<p class="err">${db?"Para añadir palabras necesitas permiso de edición en esta página. Pídeselo a quien la gestiona o pásale tu palabra.":"Ahora mismo no se pueden guardar palabras desde aquí."}</p>`}
+  <hr class="rule"><p>Hay ${live.length===1?"1 palabra añadida":live.length+" palabras añadidas"} por el grupo. No se enseñan para no destripar ninguna.</p>
+  ${mine.length?`<span class="lbl">Las que has añadido tú</span><ul class="mine">${mine.map(row).join("")}</ul>`:""}
+  ${isOwner&&live.length?`<details><summary class="lbl">Ver todas las añadidas (verás soluciones)</summary><ul class="mine">${live.map(row).join("")}</ul></details>`:""}`;
+}
+function openModal(which){
+  if(!game&&which!=="help"&&which!=="add") return;
+  modal=which; $("pj-sheet").innerHTML=which==="help"?sheetHelp():which==="dicc"?sheetDicc():which==="add"?sheetAdd():sheetStats();
+  $("pj-modal").hidden=false;
+  clearInterval(cdT); if(which==="stats") cdT=setInterval(()=>{ const el=$("pj-cd"); if(el) el.textContent=hms(); },1000);
+  const f=which==="add"?$("pj-add-w"):null; (f||$("pj-sheet").querySelector("[data-close]"))?.focus();
+}
+function closeModal(){ modal=null; addMsg=""; addErr=""; $("pj-modal").hidden=true; clearInterval(cdT); }
+
+function normPhrase(s){ return s.toUpperCase().replace(/Ñ/g,"\u0001").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\u0001/g,"Ñ").replace(/\s+/g," ").trim(); }
+document.addEventListener("submit",async ev=>{
+  if(ev.target.id!=="pj-add") return; ev.preventDefault();
+  const phrase=normPhrase($("pj-add-w").value), def=$("pj-add-d").value.trim(), letters=phrase.replace(/ /g,"");
+  addMsg=""; addErr="";
+  if(!/^[A-ZÑ]+( [A-ZÑ]+){0,2}$/.test(phrase)) addErr="Escribe solo letras, con 3 palabras como mucho.";
+  else if(letters.length<3||letters.length>14) addErr="Tiene que tener entre 3 y 14 letras (sin contar espacios).";
+  else if(!def) addErr="Falta explicar qué significa.";
+  else if(allEntries().some(e=>e.phrase===phrase)) addErr="Esa ya está en la lista.";
+  if(!addErr){
+    try{ await db.collection("palabras").add({phrase,def:def.slice(0,200),by:me,addedDay:dayIdx(),createdAt:new Date().toISOString()}); addMsg="Añadida: "+phrase+". Puede salir a partir de mañana."; }
+    catch(e){ addErr=e&&e.code==="pin"?"Hace falta el PIN del grupo para añadir palabras.":e&&e.code==="invalid_argument"?"No tienes permiso para añadir palabras en esta página.":e&&e.code==="quota_exceeded"?"La lista está llena. Quitad alguna antes de añadir más.":"No se ha podido guardar. Revisa la conexión y prueba otra vez."; if(e&&e.code==="invalid_argument") canAdd=false; }
+  }
+  const keepW=addErr?$("pj-add-w").value:"", keepD=addErr?$("pj-add-d").value:"";
+  $("pj-sheet").innerHTML=sheetAdd();
+  if($("pj-add-w")){ $("pj-add-w").value=keepW; $("pj-add-d").value=keepD; $("pj-add-w").focus(); }
+});
+
+document.addEventListener("click",async ev=>{
+  if(ev.target.id==="pj-modal"){ closeModal(); return; }
+  const b=ev.target.closest("button"); if(!b||!b.closest("#pj")) return;
+  if(b.dataset.key){ press(b.dataset.key); b.blur(); return; }
+  if(b.dataset.testrand){ const all=allEntries(); testEntry=all[Math.floor(Math.random()*all.length)]; game=freshGame(); draw(); b.blur(); return; }
+  if(b.dataset.open){ openModal(b.dataset.open); return; }
+  if(b.dataset.close){ closeModal(); return; }
+  if(b.dataset.remove){
+    try{ await db.collection("palabras").doc(b.dataset.remove).update({deletedDay:dayIdx()}); addMsg="Quitada. Deja de salir a partir de mañana."; addErr=""; }
+    catch(e){ addErr=e&&e.code==="pin"?"Hace falta el PIN del grupo para quitarla.":"No se ha podido quitar."; }
+    $("pj-sheet").innerHTML=sheetAdd(); return;
+  }
+  if(b.dataset.share){
+    const s=state(), icon={c:"🟥",p:"🟨",a:"⬛"};
+    const txt="La Palabreja nº "+(game.idx+1)+" "+(s.won?game.guesses.length:"X")+"/6\n"+game.guesses.map(g=>score(g,s.ans).map(x=>icon[x]).join("")).join("\n");
+    try{ await navigator.clipboard.writeText(txt); b.textContent="¡Copiado!"; }catch(e){ b.textContent="No se ha podido copiar"; }
+  }
+});
+document.addEventListener("keydown",ev=>{
+  if(!isPj()) return;
+  if(ev.key==="Escape"&&modal){ closeModal(); return; }
+  if(modal||ev.ctrlKey||ev.metaKey||ev.altKey||/^(SELECT|INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  if(ev.key==="Enter"){ ev.preventDefault(); press("ENTER"); return; }
+  if(ev.key==="Backspace"){ press("DEL"); return; }
+  if(ev.key.length!==1) return;
+  let k=ev.key.toUpperCase(); if(k!=="Ñ") k=k.normalize("NFD").replace(/[̀-ͯ]/g,"");
+  if(/^[A-ZÑ]$/.test(k)) press(k);
+});
+const firstVisit=()=>{ if(isPj()&&!load("palabreja-help",false)){ store("palabreja-help",true); openModal("help"); } };
+window.addEventListener("hashchange",()=>{ if(!isPj()) return; if(ready&&isTest()!==!!(game&&game.test)){ closeModal(); game=freshGame(); } draw(); firstVisit(); });
+
+function start(){ ready=true; game=freshGame(); draw(); }
+draw(); firstVisit();
+(async()=>{
+  const c=window.claude;
+  db=c&&c.use?await c.use("db"):null;
+  if(!db){ start(); return; }
+  const user=await c.use("user");
+  if(user){ try{ me=await user.id(); }catch(e){} try{ canAdd=await user.can("data.write"); }catch(e){} try{ isOwner=!!(await user.isOwner()); }catch(e){} }
+  const timer=setTimeout(()=>{ if(!ready){ slow=true; start(); } },10000);
+  db.collection("palabras").onSnapshot(q=>{
+    ADDED=q.docs.map(d=>({id:"u"+d.id,docId:d.id,...d.data()}))
+      .filter(a=>typeof a.phrase==="string"&&typeof a.def==="string"&&Number.isFinite(a.addedDay)&&/^[A-ZÑ]+( [A-ZÑ]+){0,2}$/.test(a.phrase))
+      .sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+    if(q.metadata.fromCache&&!ready) return;
+    clearTimeout(timer);
+    if(!ready){ start(); }
+    else if(slow&&game&&!game.test&&game.guesses.length===0&&game.entry.phrase!==dayWord(game.idx).phrase){ slow=false; game=freshGame(); draw(); }
+    if(modal==="add"&&!$("pj-add-w")?.value) $("pj-sheet").innerHTML=sheetAdd();
+    if(isTest()) drawTestBar();
+  },()=>{ clearTimeout(timer); if(!ready) start(); });
+})();
+})();
+</script>
+
+</body>
+</html>

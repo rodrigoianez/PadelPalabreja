@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Nombres de jugadores, fecha de inicio, vueltas y semanas sin liga
+    match /liga/config {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['name', 'players', 'start', 'vueltas', 'skips'])
+                   && request.resource.data.players is list
+                   && request.resource.data.players.size() == 8;
+    }
+    // Resultados de cada partido (j1p1, j1p2, ...)
+    match /resultados/{id} {
+      allow read: if true;
+      allow create, update: if id.matches('j[0-9]+p[12]')
+                            && request.resource.data.sets is list
+                            && request.resource.data.sets.size() <= 3;
+      allow delete: if id.matches('j[0-9]+p[12]');
+    }
+    // Palabras añadidas a la Palabreja (no se borran: se marcan como quitadas)
+    match /palabras/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.phrase is string
+                            && request.resource.data.phrase.size() <= 40
+                            && request.resource.data.def is string
+                            && request.resource.data.def.size() <= 200
+                            && request.resource.data.addedDay is int;
+      allow delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
