@@ -251,12 +251,12 @@ body.mode-pj{
 //    Las palabras de La Palabreja se pueden añadir sin PIN.
 const CONFIG={
   firebase:{
-    apiKey:"AIzaSyCUlZzmkinIELkPx352sKUblYaJduFKY5E",
-    authDomain:"paginapadel.firebaseapp.com",
-    projectId:"paginapadel",
-    storageBucket:"paginapadel.firebasestorage.app",
-    messagingSenderId:"272182313407",
-    appId:"1:272182313407:web:bf646f51ffd433b4d4a10a"
+    apiKey:"PEGA_AQUI_TU_API_KEY",
+    authDomain:"",
+    projectId:"",
+    storageBucket:"",
+    messagingSenderId:"",
+    appId:""
   },
   pin:"1234"
 };
@@ -507,7 +507,8 @@ document.addEventListener("click",async ev=>{
       if(Number(a)===Number(c)){ editErr="Un set no puede acabar en empate (set "+(s+1)+")."; render(); return; }
       sets.push([Number(a),Number(c)]); }
     if(!evalSets(sets)){ editErr="El resultado tiene que tener un ganador: más sets ganados por una pareja."; render(); return; }
-    if(await write(()=>db.collection("resultados").doc(id).set({sets,updatedAt:new Date().toISOString()}))){ editing=null; render(); }
+    // Firestore no admite arrays anidados: cada set se guarda como {a,b}
+    if(await write(()=>db.collection("resultados").doc(id).set({sets:sets.map(([a,b])=>({a,b})),updatedAt:new Date().toISOString()}))){ editing=null; render(); }
     return;
   }
   if(b.dataset.addskip){ const v=document.getElementById("s-skip").value; if(!v) return;
@@ -530,7 +531,7 @@ render();
   const done=()=>{ if(gotCfg&&gotRes){ loaded=true; clearTimeout(timer); } };
   db.doc("liga/config").onSnapshot(s=>{ if(s.exists) cfg={...DEFAULT_CFG,...s.data()}; const first=!gotCfg; if(!s.metadata.fromCache){gotCfg=true;done();} if(first||route()!=="ajustes") render(); },
     ()=>{ gotCfg=true; done(); render(); });
-  db.collection("resultados").onSnapshot(q=>{ const r={}; q.docs.forEach(d=>{r[d.id]=d.data();}); results=r; if(!q.metadata.fromCache){gotRes=true;done();} if(!editing) render(); },
+  db.collection("resultados").onSnapshot(q=>{ const r={}; q.docs.forEach(d=>{const v=d.data(); r[d.id]={...v,sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])};}); results=r; if(!q.metadata.fromCache){gotRes=true;done();} if(!editing) render(); },
     ()=>{ gotRes=true; done(); render(); });
 })();
 
