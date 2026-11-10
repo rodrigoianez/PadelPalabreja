@@ -101,6 +101,14 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute
   .score{font-size:16px;min-width:44px}.score span{display:block}.score i{display:none}
   .sets .tn{max-width:96px}.week{padding:12px}}
 @media (prefers-reduced-motion:no-preference){.week,.card{transition:box-shadow .2s}}
+/* Amistosos y pestañas */
+.team .guest{display:inline;font-size:11px;font-weight:500;color:var(--muted)}
+.pair{display:flex;flex-direction:column;gap:6px}
+.actions{gap:8px}
+nav.tabs{overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs a{flex:none;white-space:nowrap}
+.tabs svg{vertical-align:-3px}
 /* Estadísticas */
 :root{--hl:#1F5FA8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hl:#D9E54C}}
@@ -137,7 +145,7 @@ table.mini small{display:block;font-size:11px;color:var(--muted);font-weight:500
 .chart .ln.on .lb{fill:var(--ink);font-weight:700}
 .chart .ln circle.hit{fill:transparent;stroke:none;opacity:1}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:5px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px));z-index:2}
-@media (max-width:480px){nav.tabs{gap:2px}nav.tabs a{font-size:16px;padding:8px 9px 10px}.tabs .full{display:none}.tabs .short{display:inline}
+@media (max-width:480px){nav.tabs{gap:2px}nav.tabs a{font-size:15px;padding:8px 8px 10px}.tabs .full{display:none}.tabs .short{display:inline}
   .stats4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat b{font-size:24px}}
 
 /* Selector de sección: franja neutra común a la liga y al juego */
@@ -257,8 +265,9 @@ body.mode-pj{
     <nav class="tabs" id="tabs">
       <a href="#clasificacion" data-v="clasificacion"><span class="full">Clasificación</span><span class="short">Tabla</span></a>
       <a href="#jornadas" data-v="jornadas">Jornadas</a>
+      <a href="#amistosos" data-v="amistosos">Amistosos</a>
       <a href="#estadisticas" data-v="estadisticas"><span class="full">Estadísticas</span><span class="short">Stats</span></a>
-      <a href="#ajustes" data-v="ajustes" id="tab-ajustes">Ajustes</a>
+      <a href="#ajustes" data-v="ajustes" id="tab-ajustes" aria-label="Ajustes"><span class="full">Ajustes</span><span class="short"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h10M4 12h4M12 12h8M4 18h12"/><circle cx="17" cy="6" r="2.2"/><circle cx="10" cy="12" r="2.2"/><circle cx="18" cy="18" r="2.2"/></svg></span></a>
     </nav>
   </div>
 </header>
@@ -428,7 +437,7 @@ function currentWeek(weeks){
   return weeks.find(w=>w.matches.some(m=>!(results[m.id]&&evalSets(results[m.id].sets))))||null;
 }
 
-function route(){ const h=location.hash.slice(1); return ["clasificacion","jornadas","estadisticas","ajustes"].includes(h)?h:"clasificacion"; }
+function route(){ const h=location.hash.slice(1); return ["clasificacion","jornadas","amistosos","estadisticas","ajustes"].includes(h)?h:"clasificacion"; }
 
 
 function render(){
@@ -449,6 +458,7 @@ function render(){
     :!loaded?'<p class="status">'+(loadNote||"Cargando resultados…")+'</p>':"";
   const view=document.getElementById("view");
   if(v==="jornadas") view.innerHTML=status+renderWeeks(weeks,cur);
+  else if(v==="amistosos") view.innerHTML=status+renderAmistosos();
   else if(v==="estadisticas") view.innerHTML=status+renderStats(weeks);
   else if(v==="ajustes") view.innerHTML=status+renderSettings();
   else view.innerHTML=status+renderTable(weeks);
@@ -464,15 +474,7 @@ function renderTable(weeks){
   return `<div class="row" style="justify-content:space-between"><h2>Clasificación individual</h2></div>
   ${played?"":'<p class="note">Aún no hay partidos jugados. La tabla se rellena sola en cuanto se apunte el primer resultado en Jornadas.</p>'}
   <div class="card tablebox"><table><thead><tr><th>#</th><th class="name">Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Sets</th><th>Juegos</th><th>Últimos 5</th><th>Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div class="legend"><span>PJ jugados · PG ganados · PP perdidos</span><span>Sets y Juegos: diferencia a favor/en contra</span><span>Ganar 2-0 = 3 pts · Ganar 2-1 = 2 pts · Perder 1-2 = 1 pt · Perder 0-2 = 0 pts</span></div>
-  <section class="card rules"><h3>Por qué es justa</h3><ul>
-    <li>Cada vuelta son 7 miércoles. En ella cada uno juega exactamente una vez con cada uno de los otros 7 como pareja.</li>
-    <li>Y se enfrenta exactamente 2 veces a cada rival. Nadie tiene la suerte de ir siempre con el mejor ni de evitarlo.</li>
-    <li>Todos juegan un partido cada miércoles: 2 partidos por jornada, 4 contra 4.</li>
-    <li>Los puntos son individuales y los suman los dos de la pareja. Ganar 2-0 da 3 puntos y el rival se queda con 0. Ganar 2-1 da 2 puntos y el rival se lleva 1 por haber ganado un set.</li>
-    <li>Empates en puntos: % de victorias, luego diferencia de sets, luego diferencia de juegos.</li>
-    <li>Si alguien falta, juega un suplente. El partido cuenta solo para los tres titulares que lo jueguen; mejor recuperarlo otro día si se puede.</li>
-  </ul></section>`;
+  <div class="legend"><span>PJ jugados · PG ganados · PP perdidos</span><span>Sets y Juegos: diferencia a favor/en contra</span><span>Ganar 2-0 = 3 pts · Ganar 2-1 = 2 pts · Perder 1-2 = 1 pt · Perder 0-2 = 0 pts</span></div>`;
 }
 
 // ===== Estadísticas: todo sale de los sets y juegos de cada partido =====
@@ -608,6 +610,104 @@ document.addEventListener("pointerover",ev=>{
 });
 let resizeT; window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{ if(route()==="estadisticas") render(); },200); });
 
+// ===== Amistosos: partidos fuera de la liga, con jugadores de la peña o invitados =====
+// Cada jugador se guarda como "#3" (jugador 4 de la peña) o como el nombre del invitado
+let amistosos=[], amiDraft=null, amiLoadErr=false;
+const AMI_GUEST="g";
+const amiIsGuest=v=>!(typeof v==="string"&&v.startsWith("#"));
+const amiName=v=>amiIsGuest(v)?String(v||""):pname(Number(v.slice(1)));
+const amiTeam=t=>t.map(v=>esc(amiName(v))+(amiIsGuest(v)?' <small class="guest">invitado</small>':"")).join("<br>");
+
+function amiDraftFrom(x){
+  const slot=v=>v===undefined?{sel:"",txt:""}:amiIsGuest(v)?{sel:AMI_GUEST,txt:v}:{sel:v,txt:""};
+  return {id:x?x.id:null,date:x?x.date:iso(new Date()),
+    slots:x?[...x.a,...x.b].map(slot):[0,1,2,3].map(()=>slot()),
+    sets:[0,1,2].map(k=>x&&x.sets[k]?x.sets[k].map(String):["",""])};
+}
+function readAmiForm(){
+  const v=id=>document.getElementById(id).value;
+  return {id:amiDraft.id,date:v("am-date"),slots:[0,1,2,3].map(k=>({sel:v("am-s"+k),txt:v("am-t"+k).trim()})),sets:[0,1,2].map(k=>[v(`am-${k}-0`),v(`am-${k}-1`)])};
+}
+
+function renderAmiForm(d){
+  const guests=[...new Set(amistosos.flatMap(x=>[...x.a,...x.b]).filter(amiIsGuest))].sort();
+  const slot=k=>{ const s=d.slots[k];
+    return `<select id="am-s${k}" data-amisel="${k}" aria-label="Jugador ${k+1}"><option value="">Elige jugador</option>${
+      [...Array(8).keys()].map(i=>`<option value="#${i}"${s.sel==="#"+i?" selected":""}>${esc(pname(i))}</option>`).join("")
+    }<option value="${AMI_GUEST}"${s.sel===AMI_GUEST?" selected":""}>Invitado…</option></select>
+    <input id="am-t${k}" list="am-guests" maxlength="30" placeholder="Nombre del invitado" aria-label="Nombre del invitado ${k+1}" value="${esc(s.txt)}"${s.sel===AMI_GUEST?"":" hidden"}>`; };
+  const cell=(k,t)=>`<input type="number" min="0" max="7" inputmode="numeric" id="am-${k}-${t}" value="${esc(d.sets[k][t])}" aria-label="Set ${k+1}">`;
+  return `<section class="card settings"><h3 class="sh" style="margin:0">${d.id?"Cambiar amistoso":"Nuevo amistoso"}</h3>
+    <label for="am-date">Fecha<input type="date" id="am-date" value="${esc(d.date)}" style="max-width:200px"></label>
+    <div class="grid2"><div class="pair"><span class="note">Pareja 1</span>${slot(0)}${slot(1)}</div><div class="pair"><span class="note">Pareja 2</span>${slot(2)}${slot(3)}</div></div>
+    <div><p class="note" style="margin-bottom:8px">Resultado (se puede dejar vacío y apuntarlo después)</p>
+    <div class="sets"><span></span><span class="lbl">Set 1</span><span class="lbl">Set 2</span><span class="lbl">Set 3</span>
+      <span class="tn">Pareja 1</span>${cell(0,0)}${cell(1,0)}${cell(2,0)}
+      <span class="tn">Pareja 2</span>${cell(0,1)}${cell(1,1)}${cell(2,1)}</div></div>
+    <datalist id="am-guests">${guests.map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+    ${editErr?`<p class="err">${esc(editErr)}</p>`:""}
+    <div class="row"><button class="primary" data-amisave="1">Guardar</button><button data-amicancel="1">Cancelar</button></div></section>`;
+}
+
+function renderAmistosos(){
+  const edit=canWrite!==false&&!readOnly&&db;
+  let html=`<div class="row" style="justify-content:space-between"><h2>Amistosos</h2>${edit&&!amiDraft?'<button class="primary" data-aminew="1">Nuevo amistoso</button>':""}</div>
+  <p class="note">Partidos fuera de la liga, por ejemplo cuando falta alguien. Pueden jugar invitados y no cuentan para la clasificación ni para las estadísticas.</p>`;
+  if(amiLoadErr) html+='<p class="status">No se pueden cargar los amistosos. Revisa que las reglas de Firestore estén actualizadas.</p>';
+  if(amiDraft&&!amiDraft.id) html+=renderAmiForm(amiDraft);
+  if(!amistosos.length&&!amiDraft&&!amiLoadErr) html+='<p class="note">Aún no hay amistosos.</p>';
+  for(const x of amistosos){
+    if(amiDraft&&amiDraft.id===x.id){ html+=renderAmiForm(amiDraft); continue; }
+    const e=evalSets(x.sets);
+    const score=x.sets.map(s=>`<span>${Number(s[0])}-${Number(s[1])}</span>`).join("<i>/</i>");
+    html+=`<section class="card week"><div class="week-head"><h3>Amistoso</h3><span class="date">${fmt(new Date(x.date+"T12:00:00"))}</span></div>
+      <div class="match"><div class="team ${e&&e.winner==="a"?"won":""}">${amiTeam(x.a)}</div>
+        <div class="score ${e?"":"empty"}">${e?score:"vs"}</div>
+        <div class="team b ${e&&e.winner==="b"?"won":""}">${amiTeam(x.b)}</div>
+        ${edit&&!amiDraft?`<div class="actions"><button class="link" data-amiedit="${x.id}">${e?"Cambiar":"Apuntar resultado"}</button><button class="link" data-amidel="${x.id}">Borrar</button></div>`:""}
+      </div></section>`;
+  }
+  return html;
+}
+
+document.addEventListener("change",ev=>{
+  const k=ev.target.dataset&&ev.target.dataset.amisel; if(k===undefined) return;
+  const t=document.getElementById("am-t"+k); t.hidden=ev.target.value!==AMI_GUEST; if(!t.hidden) t.focus();
+});
+document.addEventListener("click",async ev=>{
+  const b=ev.target.closest("button"); if(!b) return;
+  if(b.dataset.aminew){ amiDraft=amiDraftFrom(null); editing="ami"; editErr=""; render(); return; }
+  if(b.dataset.amiedit){ const x=amistosos.find(a=>a.id===b.dataset.amiedit); if(!x) return; amiDraft=amiDraftFrom(x); editing="ami"; editErr=""; render(); return; }
+  if(b.dataset.amicancel){ amiDraft=null; editing=null; editErr=""; render(); return; }
+  if(b.dataset.amidel){ const x=amistosos.find(a=>a.id===b.dataset.amidel); if(!x) return;
+    if(!confirm("¿Seguro que quieres borrar este amistoso?\n"+x.a.map(amiName).join(" y ")+" contra "+x.b.map(amiName).join(" y ")+(x.sets.length?" ("+setsText(x.sets)+")":""))) return;
+    await write(()=>db.collection("amistosos").doc(x.id).delete()); render(); return; }
+  if(!b.dataset.amisave) return;
+  const d=readAmiForm(); amiDraft=d;
+  const fail=m=>{ editErr=m; render(); };
+  if(!d.date) return fail("Pon la fecha del partido.");
+  const ps=[];
+  for(let k=0;k<4;k++){ const s=d.slots[k];
+    if(!s.sel) return fail("Falta elegir el jugador "+(k+1)+".");
+    if(s.sel===AMI_GUEST){ const n=s.txt.replace(/^#+/,"").trim(); if(!n) return fail("Escribe el nombre del invitado "+(k+1)+"."); ps.push(n); }
+    else ps.push(s.sel); }
+  if(new Set(ps.map(v=>amiName(v).toLowerCase())).size<4) return fail("Hay un jugador repetido.");
+  const sets=[];
+  for(let k=0;k<3;k++){ const [a,c]=d.sets[k];
+    if(a===""&&c==="") continue;
+    if(a===""||c==="") return fail("Falta un número en el set "+(k+1)+".");
+    if(Number(a)===Number(c)) return fail("Un set no puede acabar en empate (set "+(k+1)+").");
+    sets.push([Number(a),Number(c)]); }
+  if(sets.length&&!evalSets(sets)) return fail("El resultado tiene que tener un ganador: más sets ganados por una pareja.");
+  // Cambiar un resultado ya apuntado pide confirmación
+  const old=d.id&&amistosos.find(a=>a.id===d.id);
+  if(old&&old.sets.length&&setsText(old.sets)!==setsText(sets)
+    &&!confirm("Este amistoso ya tiene resultado: "+setsText(old.sets)+".\n¿Seguro que quieres "+(sets.length?"cambiarlo por "+setsText(sets):"dejarlo sin resultado")+"?")) return;
+  const v={date:d.date,a:ps.slice(0,2),b:ps.slice(2),sets:sets.map(([a,b])=>({a,b})),updatedAt:new Date().toISOString()};
+  const col=db.collection("amistosos");
+  if(await write(()=>d.id?col.doc(d.id).set(v):col.add(v))){ amiDraft=null; editing=null; render(); }
+});
+
 function renderWeeks(weeks,cur){
   let html='<h2>Jornadas</h2>'; let lastV=0;
   const edit=canWrite!==false&&!readOnly&&db;
@@ -700,7 +800,7 @@ document.addEventListener("click",async ev=>{
   if(b.dataset.savecfg){ const next=readCfgForm();
     if(await write(()=>db.doc("liga/config").set(next))){ cfg=next; render(); const s=document.getElementById("saved"); if(s) s.textContent="Guardado"; } }
 });
-window.addEventListener("hashchange",()=>{editing=null;editErr="";render();});
+window.addEventListener("hashchange",()=>{editing=null;amiDraft=null;editErr="";render();});
 
 render();
 (async()=>{
@@ -716,6 +816,10 @@ render();
     ()=>{ gotCfg=true; done(); render(); });
   db.collection("resultados").onSnapshot(q=>{ const r={}; q.docs.forEach(d=>{const v=d.data(); r[d.id]={...v,sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])};}); results=r; if(!q.metadata.fromCache){gotRes=true;done();} if(!editing) render(); },
     ()=>{ gotRes=true; done(); render(); });
+  db.collection("amistosos").onSnapshot(q=>{ amiLoadErr=false;
+    amistosos=q.docs.map(d=>{ const v=d.data(); return {id:d.id,date:String(v.date||""),a:v.a||[],b:v.b||[],sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])}; }).sort((x,y)=>y.date.localeCompare(x.date));
+    if(!editing) render(); },
+    ()=>{ amiLoadErr=true; render(); });
 })();
 
 // ===== La Palabreja (independiente de la liga) =====
