@@ -109,10 +109,8 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute
 .sh{font-family:var(--display);font-weight:700;font-size:19px;text-transform:uppercase;letter-spacing:.03em;margin:8px 0 -8px}
 .pick select{width:auto;min-width:180px;font-weight:600;font-size:16px;padding:8px 10px}
 .stats4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.stats2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .stat{padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .stat b{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.stats2 .stat b{font-size:22px}
 .stat span{font-size:12px;color:var(--muted)}
 .stat .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
 .kv{margin:0;padding:4px 16px}
@@ -124,6 +122,7 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute
 .kv.rec dd{text-align:left}
 table.mini{min-width:0}
 table.mini td,table.mini th{padding:8px 6px}
+table.mini small{display:block;font-size:11px;color:var(--muted);font-weight:500}
 .chart{padding:12px 8px 6px;position:relative}
 .chart svg{display:block;max-width:100%;height:auto;overflow:visible}
 .chart .gl{stroke:var(--line);stroke-width:1}
@@ -139,7 +138,7 @@ table.mini td,table.mini th{padding:8px 6px}
 .chart .ln circle.hit{fill:transparent;stroke:none;opacity:1}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:5px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px));z-index:2}
 @media (max-width:480px){nav.tabs{gap:2px}nav.tabs a{font-size:16px;padding:8px 9px 10px}.tabs .full{display:none}.tabs .short{display:inline}
-  .stats4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat b{font-size:24px}.stats2 .stat b{font-size:19px}}
+  .stats4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat b{font-size:24px}}
 
 /* Selector de sección: franja neutra común a la liga y al juego */
 :root{--strip:#0A0F1A; --strip-ink:#C9D1DE}
@@ -513,14 +512,6 @@ function playerStats(list){
   return ps;
 }
 
-// Mejor (dir=1) o peor (dir=-1) compañero/rival: % de victorias y, si empatan, diferencia de juegos
-function pickBest(map,dir){
-  const arr=Object.entries(map).map(([q,x])=>({q:+q,...x}));
-  if(arr.length<2) return null;
-  arr.sort((a,b)=>dir*((b.pg/b.pj-a.pg/a.pj)||(b.jd-a.jd)));
-  return arr[0];
-}
-
 // Posición de cada jugador después de cada jornada (hasta la última con algún resultado)
 function rankHistory(weeks){
   let last=-1; weeks.forEach((w,k)=>{ if(w.matches.some(m=>results[m.id]&&evalSets(results[m.id].sets))) last=k; });
@@ -555,7 +546,6 @@ function renderStats(weeks){
   if(!list.length) return html+'<p class="note">Aún no hay partidos jugados. Las estadísticas aparecen en cuanto se apunte el primer resultado en Jornadas.</p>';
   const ps=playerStats(list), s=ps[statP]||ps[0], hist=rankHistory(weeks);
   const pct=(a,b)=>b?Math.round(100*a/b)+"%":"—", sg=n=>(n>0?"+":"")+n, wl=x=>x.w+"-"+x.l;
-  const who=(x,k)=>`<div class="card stat"><span class="k">${k}</span>${x?`<b>${esc(pname(x.q))}</b><span>${x.pg}-${x.pj-x.pg} · juegos ${sg(x.jd)}</span>`:"<b>—</b><span>Aún hay pocos partidos</span>"}</div>`;
   const opts=[...Array(8).keys()].map(i=>`<option value="${i}"${i===s.i?" selected":""}>${esc(pname(i))}</option>`).join("");
   html+=`<div class="pick"><select id="statp" aria-label="Jugador">${opts}</select></div>`;
   html+=s.pj?`<div class="stats4">
@@ -563,7 +553,6 @@ function renderStats(weeks){
     <div class="card stat"><span class="k">Victorias</span><b>${pct(s.pg,s.pj)}</b><span>de ${s.pj} partidos</span></div>
     <div class="card stat"><span class="k">Juegos</span><b>${pct(s.jf,s.jf+s.jc)}</b><span>${s.jf} ganados, ${s.jc} perdidos</span></div>
     <div class="card stat"><span class="k">Racha</span><b>${s.streak>0?s.streak+" V":-s.streak+" D"}</b><span>${s.streak>0?"victorias seguidas":"derrotas seguidas"}</span></div></div>
-  <div class="stats2">${who(pickBest(s.mate,1),"Mejor compañero")}${who(pickBest(s.mate,-1),"Peor compañero")}${who(pickBest(s.riv,1),"Rival favorito")}${who(pickBest(s.riv,-1),"Bestia negra")}</div>
   <dl class="card kv">
     <div><dt>Sets ganados-perdidos</dt><dd>${s.sf}-${s.sc}</dd></div>
     <div><dt>Partidos a 3 sets</dt><dd>${wl(s.three)}</dd></div>
@@ -574,8 +563,9 @@ function renderStats(weeks){
     <div><dt>Mejor racha de victorias</dt><dd>${s.best}</dd></div>
   </dl>
   <div class="card tablebox"><table class="mini"><thead><tr><th class="name">Frente a…</th><th>Con él</th><th>Contra él</th></tr></thead><tbody>${
-    [...Array(8).keys()].filter(q=>q!==s.i).map(q=>{ const c=x=>x?`${x.pg}-${x.pj-x.pg}`:"·";
-      return `<tr><td class="name">${esc(pname(q))}</td><td>${c(s.mate[q])}</td><td>${c(s.riv[q])}</td></tr>`; }).join("")}</tbody></table></div>`
+    [...Array(8).keys()].filter(q=>q!==s.i).map(q=>{ const c=x=>x?`${x.pg}-${x.pj-x.pg}<small>${sg(x.jd)} juegos</small>`:"·";
+      return `<tr><td class="name">${esc(pname(q))}</td><td>${c(s.mate[q])}</td><td>${c(s.riv[q])}</td></tr>`; }).join("")}</tbody></table></div>
+  <p class="note">Partidos ganados-perdidos y, debajo, diferencia de juegos.</p>`
   :'<p class="note">'+esc(pname(s.i))+' aún no ha jugado ningún partido.</p>';
 
   html+=`<h3 class="sh">Clasificación jornada a jornada</h3><p class="note">Toca una línea o un nombre para resaltar a ese jugador.</p>
@@ -585,9 +575,8 @@ function renderStats(weeks){
   const diff=x=>Math.abs(x.e.ga-x.e.gb), games=x=>x.e.ga+x.e.gb;
   const by=f=>list.reduce((a,b)=>f(b)>f(a)?b:a);
   const top=(f,u)=>{ const mx=Math.max(...ps.map(f)); return mx>0?ps.filter(p=>f(p)===mx).map(p=>esc(pname(p.i))).join(", ")+" ("+mx+u+")":"—"; };
-  const three=list.filter(x=>x.sets.length===3).length, long=by(games);
+  const long=by(games);
   html+=`<h3 class="sh">Récords del grupo</h3><dl class="card kv rec">
-    <div><dt>Partidos jugados</dt><dd>${list.length}, ${three} de ellos a 3 sets (${pct(three,list.length)})</dd></div>
     <div><dt>Media de juegos por partido</dt><dd>${(list.reduce((a,x)=>a+games(x),0)/list.length).toFixed(1).replace(".",",")}</dd></div>
     <div><dt>Mayor paliza</dt><dd>${desc(by(diff))}</dd></div>
     <div><dt>Partido más igualado</dt><dd>${desc(by(x=>x.sets.length*100-diff(x)))}</dd></div>
@@ -596,11 +585,7 @@ function renderStats(weeks){
     <div><dt>Más remontadas</dt><dd>${top(p=>p.comeback,"")}</dd></div>
     <div><dt>Más tie-breaks ganados</dt><dd>${top(p=>p.tb.w,"")}</dd></div>
     <div><dt>Más roscos dados</dt><dd>${top(p=>p.rosco.d,"")}</dd></div>
-  </dl>
-  <section class="card rules"><h3>Lo que no podemos medir</h3><ul>
-    <li>En el circuito profesional también se cuentan puntos ganados, puntos de break salvados y convertidos, puntos de oro, saques, winners y errores no forzados.</li>
-    <li>Para eso habría que apuntar punto a punto. Aquí solo guardamos el resultado de cada set, así que todo lo de arriba sale de sets y juegos.</li>
-  </ul></section>`;
+  </dl>`;
   return html;
 }
 
