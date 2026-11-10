@@ -101,6 +101,45 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute
   .score{font-size:16px;min-width:44px}.score span{display:block}.score i{display:none}
   .sets .tn{max-width:96px}.week{padding:12px}}
 @media (prefers-reduced-motion:no-preference){.week,.card{transition:box-shadow .2s}}
+/* Estadísticas */
+:root{--hl:#1F5FA8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hl:#D9E54C}}
+:root[data-theme="dark"]{--hl:#D9E54C}
+.tabs .short{display:none}
+.sh{font-family:var(--display);font-weight:700;font-size:19px;text-transform:uppercase;letter-spacing:.03em;margin:8px 0 -8px}
+.pick select{width:auto;min-width:180px;font-weight:600;font-size:16px;padding:8px 10px}
+.stats4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stats2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat b{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stats2 .stat b{font-size:22px}
+.stat span{font-size:12px;color:var(--muted)}
+.stat .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.kv{margin:0;padding:4px 16px}
+.kv div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv div:last-child{border-bottom:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.kv.rec div{display:block}
+.kv.rec dd{text-align:left}
+table.mini{min-width:0}
+table.mini td,table.mini th{padding:8px 6px}
+.chart{padding:12px 8px 6px;position:relative}
+.chart svg{display:block;max-width:100%;height:auto;overflow:visible}
+.chart .gl{stroke:var(--line);stroke-width:1}
+.chart .ax{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.chart .ln{cursor:pointer}
+.chart .ln polyline{fill:none;stroke:var(--muted);stroke-width:2;opacity:.3;stroke-linejoin:round;stroke-linecap:round}
+.chart .ln circle{fill:var(--muted);opacity:.45;stroke:var(--surface);stroke-width:2}
+.chart .ln .lb{fill:var(--muted);font-size:12px;font-family:var(--body)}
+.chart .ln:hover polyline{opacity:.7}
+.chart .ln.on polyline{stroke:var(--hl);opacity:1;stroke-width:2.5}
+.chart .ln.on circle{fill:var(--hl);opacity:1}
+.chart .ln.on .lb{fill:var(--ink);font-weight:700}
+.chart .ln circle.hit{fill:transparent;stroke:none;opacity:1}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;padding:5px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px));z-index:2}
+@media (max-width:480px){nav.tabs{gap:2px}nav.tabs a{font-size:16px;padding:8px 9px 10px}.tabs .full{display:none}.tabs .short{display:inline}
+  .stats4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat b{font-size:24px}.stats2 .stat b{font-size:19px}}
 
 /* Selector de sección: franja neutra común a la liga y al juego */
 :root{--strip:#0A0F1A; --strip-ink:#C9D1DE}
@@ -217,8 +256,9 @@ body.mode-pj{
     <h1 id="title">Liguilla de los Miércoles</h1>
     <span class="next" id="next">Cargando calendario…</span>
     <nav class="tabs" id="tabs">
-      <a href="#clasificacion" data-v="clasificacion">Clasificación</a>
+      <a href="#clasificacion" data-v="clasificacion"><span class="full">Clasificación</span><span class="short">Tabla</span></a>
       <a href="#jornadas" data-v="jornadas">Jornadas</a>
+      <a href="#estadisticas" data-v="estadisticas"><span class="full">Estadísticas</span><span class="short">Stats</span></a>
       <a href="#ajustes" data-v="ajustes" id="tab-ajustes">Ajustes</a>
     </nav>
   </div>
@@ -389,7 +429,7 @@ function currentWeek(weeks){
   return weeks.find(w=>w.matches.some(m=>!(results[m.id]&&evalSets(results[m.id].sets))))||null;
 }
 
-function route(){ const h=location.hash.slice(1); return ["clasificacion","jornadas","ajustes"].includes(h)?h:"clasificacion"; }
+function route(){ const h=location.hash.slice(1); return ["clasificacion","jornadas","estadisticas","ajustes"].includes(h)?h:"clasificacion"; }
 
 
 function render(){
@@ -410,6 +450,7 @@ function render(){
     :!loaded?'<p class="status">'+(loadNote||"Cargando resultados…")+'</p>':"";
   const view=document.getElementById("view");
   if(v==="jornadas") view.innerHTML=status+renderWeeks(weeks,cur);
+  else if(v==="estadisticas") view.innerHTML=status+renderStats(weeks);
   else if(v==="ajustes") view.innerHTML=status+renderSettings();
   else view.innerHTML=status+renderTable(weeks);
 }
@@ -435,6 +476,153 @@ function renderTable(weeks){
   </ul></section>`;
 }
 
+// ===== Estadísticas: todo sale de los sets y juegos de cada partido =====
+let statP=0; try{ statP=Number(localStorage.getItem("liguilla-statp"))||0; }catch(e){}
+
+function playedMatches(weeks){
+  const out=[];
+  for(const w of weeks) for(const m of w.matches){ const r=results[m.id]; const e=r&&evalSets(r.sets);
+    if(e) out.push({w,m,e,sets:r.sets.filter(s=>s&&s.length===2&&Number(s[0])!==Number(s[1])).map(s=>s.map(Number))}); }
+  return out;
+}
+
+function playerStats(list){
+  const ps=[...Array(8)].map((_,i)=>({i,pj:0,pg:0,sf:0,sc:0,jf:0,jc:0,three:{w:0,l:0},comeback:0,blown:0,tb:{w:0,l:0},rosco:{d:0,r:0},streak:0,best:0,run:[],mate:{},riv:{}}));
+  for(const {m,e,sets} of list) for(const side of ["a","b"]){
+    const t=m[side], o=m[side==="a"?"b":"a"], won=e.winner===side, me=side==="a"?0:1;
+    const sf=me?e.sb:e.sa, sc=me?e.sa:e.sb, jf=me?e.gb:e.ga, jc=me?e.ga:e.gb;
+    const firstWon=sets[0][me]>sets[0][1-me];
+    t.forEach((p,k)=>{ const s=ps[p];
+      s.pj++; if(won) s.pg++; s.sf+=sf; s.sc+=sc; s.jf+=jf; s.jc+=jc;
+      if(sets.length===3) won?s.three.w++:s.three.l++;
+      if(won&&!firstWon) s.comeback++;
+      if(!won&&firstWon) s.blown++;
+      for(const st of sets){ const a=st[me], b=st[1-me];
+        if(Math.max(a,b)===7&&Math.min(a,b)===6) a>b?s.tb.w++:s.tb.l++;
+        if(a===6&&b===0) s.rosco.d++;
+        if(a===0&&b===6) s.rosco.r++; }
+      s.run.push(won);
+      const add=(map,q)=>{ const x=map[q]||(map[q]={pj:0,pg:0,jd:0}); x.pj++; if(won) x.pg++; x.jd+=jf-jc; };
+      add(s.mate,t[1-k]); o.forEach(q=>add(s.riv,q));
+    });
+  }
+  ps.forEach(s=>{ let c=0; for(const w of s.run){ c=w?c+1:0; s.best=Math.max(s.best,c); }
+    // racha actual: positiva si viene ganando, negativa si viene perdiendo
+    const last=s.run[s.run.length-1]; let n=0; for(let k=s.run.length-1;k>=0&&s.run[k]===last;k--) n++;
+    s.streak=s.run.length?(last?n:-n):0; });
+  return ps;
+}
+
+// Mejor (dir=1) o peor (dir=-1) compañero/rival: % de victorias y, si empatan, diferencia de juegos
+function pickBest(map,dir){
+  const arr=Object.entries(map).map(([q,x])=>({q:+q,...x}));
+  if(arr.length<2) return null;
+  arr.sort((a,b)=>dir*((b.pg/b.pj-a.pg/a.pj)||(b.jd-a.jd)));
+  return arr[0];
+}
+
+// Posición de cada jugador después de cada jornada (hasta la última con algún resultado)
+function rankHistory(weeks){
+  let last=-1; weeks.forEach((w,k)=>{ if(w.matches.some(m=>results[m.id]&&evalSets(results[m.id].sets))) last=k; });
+  const hist=[];
+  for(let k=0;k<=last;k++){ const pos={}; standings(weeks.slice(0,k+1)).forEach((s,r)=>{ pos[s.i]={pos:r+1,pts:s.pts}; }); hist.push({n:weeks[k].n,pos}); }
+  return hist;
+}
+
+function bumpChart(hist,sel){
+  const W=Math.max(300,Math.min(726,(document.getElementById("view").clientWidth||700)-18));
+  const L=30,R=92,T=10,B=28,rowH=26,H=T+B+rowH*7;
+  const n=hist.length, x=k=>n===1?L+(W-L-R)/2:L+k*(W-L-R)/(n-1), y=p=>T+(p-1)*rowH;
+  const short=s=>s.length>11?s.slice(0,10)+"…":s;
+  let g="";
+  for(let p=1;p<=8;p++) g+=`<line class="gl" x1="${L}" x2="${W-R}" y1="${y(p)}" y2="${y(p)}"/><text class="ax" x="${L-10}" y="${y(p)}" dy=".35em" text-anchor="end">${p}º</text>`;
+  const every=Math.ceil(n/Math.max(1,Math.floor((W-L-R)/34)));
+  hist.forEach((h,k)=>{ if(k%every===0||k===n-1) g+=`<text class="ax" x="${x(k)}" y="${H-6}" text-anchor="middle">J${h.n}</text>`; });
+  for(const i of [...Array(8).keys()].filter(i=>i!==sel).concat(sel)){
+    const on=i===sel, pts=hist.map((h,k)=>[x(k),y(h.pos[i].pos)]);
+    g+=`<g class="ln${on?" on":""}" data-statp="${i}">`;
+    if(n>1) g+=`<polyline points="${pts.map(p=>p.join(",")).join(" ")}"/>`;
+    pts.forEach(([px,py],k)=>{ const h=hist[k].pos[i];
+      g+=`<circle cx="${px}" cy="${py}" r="${on?4.5:3}"/><circle class="hit" cx="${px}" cy="${py}" r="12" data-tip="${esc(pname(i))} · J${hist[k].n}: ${h.pos}º, ${h.pts} pts"/>`; });
+    const lp=pts[n-1]; g+=`<text class="lb" x="${lp[0]+10}" y="${lp[1]}" dy=".35em">${esc(short(pname(i)))}</text></g>`;
+  }
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Posición de cada jugador en la clasificación después de cada jornada">${g}</svg>`;
+}
+
+function renderStats(weeks){
+  const list=playedMatches(weeks);
+  let html='<h2>Estadísticas</h2>';
+  if(!list.length) return html+'<p class="note">Aún no hay partidos jugados. Las estadísticas aparecen en cuanto se apunte el primer resultado en Jornadas.</p>';
+  const ps=playerStats(list), s=ps[statP]||ps[0], hist=rankHistory(weeks);
+  const pct=(a,b)=>b?Math.round(100*a/b)+"%":"—", sg=n=>(n>0?"+":"")+n, wl=x=>x.w+"-"+x.l;
+  const who=(x,k)=>`<div class="card stat"><span class="k">${k}</span>${x?`<b>${esc(pname(x.q))}</b><span>${x.pg}-${x.pj-x.pg} · juegos ${sg(x.jd)}</span>`:"<b>—</b><span>Aún hay pocos partidos</span>"}</div>`;
+  const opts=[...Array(8).keys()].map(i=>`<option value="${i}"${i===s.i?" selected":""}>${esc(pname(i))}</option>`).join("");
+  html+=`<div class="pick"><select id="statp" aria-label="Jugador">${opts}</select></div>`;
+  html+=s.pj?`<div class="stats4">
+    <div class="card stat"><span class="k">Partidos</span><b>${s.pg}-${s.pj-s.pg}</b><span>ganados-perdidos</span></div>
+    <div class="card stat"><span class="k">Victorias</span><b>${pct(s.pg,s.pj)}</b><span>de ${s.pj} partidos</span></div>
+    <div class="card stat"><span class="k">Juegos</span><b>${pct(s.jf,s.jf+s.jc)}</b><span>${s.jf} ganados, ${s.jc} perdidos</span></div>
+    <div class="card stat"><span class="k">Racha</span><b>${s.streak>0?s.streak+" V":-s.streak+" D"}</b><span>${s.streak>0?"victorias seguidas":"derrotas seguidas"}</span></div></div>
+  <div class="stats2">${who(pickBest(s.mate,1),"Mejor compañero")}${who(pickBest(s.mate,-1),"Peor compañero")}${who(pickBest(s.riv,1),"Rival favorito")}${who(pickBest(s.riv,-1),"Bestia negra")}</div>
+  <dl class="card kv">
+    <div><dt>Sets ganados-perdidos</dt><dd>${s.sf}-${s.sc}</dd></div>
+    <div><dt>Partidos a 3 sets</dt><dd>${wl(s.three)}</dd></div>
+    <div><dt>Remontadas (gana tras perder el 1.er set)</dt><dd>${s.comeback}</dd></div>
+    <div><dt>Ventajas perdidas (pierde tras ganar el 1.er set)</dt><dd>${s.blown}</dd></div>
+    <div><dt>Sets ganados en tie-break (7-6)</dt><dd>${wl(s.tb)}</dd></div>
+    <div><dt>Roscos 6-0 dados / recibidos</dt><dd>${s.rosco.d} / ${s.rosco.r}</dd></div>
+    <div><dt>Mejor racha de victorias</dt><dd>${s.best}</dd></div>
+  </dl>
+  <div class="card tablebox"><table class="mini"><thead><tr><th class="name">Frente a…</th><th>Con él</th><th>Contra él</th></tr></thead><tbody>${
+    [...Array(8).keys()].filter(q=>q!==s.i).map(q=>{ const c=x=>x?`${x.pg}-${x.pj-x.pg}`:"·";
+      return `<tr><td class="name">${esc(pname(q))}</td><td>${c(s.mate[q])}</td><td>${c(s.riv[q])}</td></tr>`; }).join("")}</tbody></table></div>`
+  :'<p class="note">'+esc(pname(s.i))+' aún no ha jugado ningún partido.</p>';
+
+  html+=`<h3 class="sh">Clasificación jornada a jornada</h3><p class="note">Toca una línea o un nombre para resaltar a ese jugador.</p>
+  <div class="card chart">${bumpChart(hist,s.i)}<div class="tip" id="tip" hidden></div></div>`;
+
+  const desc=x=>`J${x.w.n} · ${esc(tname(x.m.a))} ${x.sets.map(t=>t.join("-")).join(" / ")} ${esc(tname(x.m.b))}`;
+  const diff=x=>Math.abs(x.e.ga-x.e.gb), games=x=>x.e.ga+x.e.gb;
+  const by=f=>list.reduce((a,b)=>f(b)>f(a)?b:a);
+  const top=(f,u)=>{ const mx=Math.max(...ps.map(f)); return mx>0?ps.filter(p=>f(p)===mx).map(p=>esc(pname(p.i))).join(", ")+" ("+mx+u+")":"—"; };
+  const three=list.filter(x=>x.sets.length===3).length, long=by(games);
+  html+=`<h3 class="sh">Récords del grupo</h3><dl class="card kv rec">
+    <div><dt>Partidos jugados</dt><dd>${list.length}, ${three} de ellos a 3 sets (${pct(three,list.length)})</dd></div>
+    <div><dt>Media de juegos por partido</dt><dd>${(list.reduce((a,x)=>a+games(x),0)/list.length).toFixed(1).replace(".",",")}</dd></div>
+    <div><dt>Mayor paliza</dt><dd>${desc(by(diff))}</dd></div>
+    <div><dt>Partido más igualado</dt><dd>${desc(by(x=>x.sets.length*100-diff(x)))}</dd></div>
+    <div><dt>Partido más largo</dt><dd>${desc(long)} · ${games(long)} juegos</dd></div>
+    <div><dt>Mejor racha de victorias</dt><dd>${top(p=>p.best," seguidas")}</dd></div>
+    <div><dt>Más remontadas</dt><dd>${top(p=>p.comeback,"")}</dd></div>
+    <div><dt>Más tie-breaks ganados</dt><dd>${top(p=>p.tb.w,"")}</dd></div>
+    <div><dt>Más roscos dados</dt><dd>${top(p=>p.rosco.d,"")}</dd></div>
+  </dl>
+  <section class="card rules"><h3>Lo que no podemos medir</h3><ul>
+    <li>En el circuito profesional también se cuentan puntos ganados, puntos de break salvados y convertidos, puntos de oro, saques, winners y errores no forzados.</li>
+    <li>Para eso habría que apuntar punto a punto. Aquí solo guardamos el resultado de cada set, así que todo lo de arriba sale de sets y juegos.</li>
+  </ul></section>`;
+  return html;
+}
+
+document.addEventListener("change",ev=>{
+  if(ev.target.id!=="statp") return;
+  statP=Number(ev.target.value); try{ localStorage.setItem("liguilla-statp",statP); }catch(e){} render();
+});
+document.addEventListener("click",ev=>{
+  const g=ev.target.closest&&ev.target.closest("[data-statp]"); if(!g) return;
+  statP=Number(g.dataset.statp); try{ localStorage.setItem("liguilla-statp",statP); }catch(e){}
+  const sc=window.scrollY; render(); window.scrollTo(0,sc);
+});
+document.addEventListener("pointerover",ev=>{
+  const tip=document.getElementById("tip"); if(!tip) return;
+  const t=ev.target.closest&&ev.target.closest("[data-tip]");
+  if(!t){ tip.hidden=true; return; }
+  const box=tip.parentElement.getBoundingClientRect(), r=t.getBoundingClientRect();
+  tip.textContent=t.dataset.tip; tip.hidden=false;
+  tip.style.left=Math.min(box.width-70,Math.max(70,r.left+r.width/2-box.left))+"px"; tip.style.top=(r.top+r.height/2-box.top)+"px";
+});
+let resizeT; window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{ if(route()==="estadisticas") render(); },200); });
+
 function renderWeeks(weeks,cur){
   let html='<h2>Jornadas</h2>'; let lastV=0;
   const edit=canWrite!==false&&!readOnly&&db;
@@ -458,6 +646,8 @@ function renderWeeks(weeks,cur){
   }
   return html;
 }
+
+function setsText(sets){ return (sets||[]).filter(s=>s&&s.length===2).map(s=>s[0]+"-"+s[1]).join(" / "); }
 
 function renderEditor(m){
   const r=results[m.id]; const sets=(r&&r.sets)||[];
@@ -503,7 +693,9 @@ document.addEventListener("click",async ev=>{
   const b=ev.target.closest("button"); if(!b) return;
   if(b.dataset.edit){ editing=b.dataset.edit; editErr=""; render(); return; }
   if(b.dataset.cancel){ editing=null; editErr=""; render(); return; }
-  if(b.dataset.clear){ const id=b.dataset.clear; if(await write(()=>db.collection("resultados").doc(id).delete())){ editing=null; render(); } return; }
+  if(b.dataset.clear){ const id=b.dataset.clear;
+    if(!confirm("¿Seguro que quieres borrar el resultado "+setsText(results[id]&&results[id].sets)+"?\nSe quitará de la clasificación.")) return;
+    if(await write(()=>db.collection("resultados").doc(id).delete())){ editing=null; render(); } return; }
   if(b.dataset.save){
     const id=b.dataset.save; const sets=[];
     for(let s=0;s<3;s++){ const a=document.getElementById(`in-${id}-s${s}-0`).value, c=document.getElementById(`in-${id}-s${s}-1`).value;
@@ -511,6 +703,9 @@ document.addEventListener("click",async ev=>{
       if(Number(a)===Number(c)){ editErr="Un set no puede acabar en empate (set "+(s+1)+")."; render(); return; }
       sets.push([Number(a),Number(c)]); }
     if(!evalSets(sets)){ editErr="El resultado tiene que tener un ganador: más sets ganados por una pareja."; render(); return; }
+    // Cambiar un resultado ya apuntado pide confirmación
+    const prev=results[id]&&evalSets(results[id].sets)?setsText(results[id].sets):"";
+    if(prev&&prev!==setsText(sets)&&!confirm("Este partido ya tiene resultado: "+prev+".\n¿Seguro que quieres cambiarlo por "+setsText(sets)+"?")) return;
     if(await write(()=>db.collection("resultados").doc(id).set({sets:sets.map(([a,b])=>({a,b})),updatedAt:new Date().toISOString()}))){ editing=null; render(); }
     return;
   }
