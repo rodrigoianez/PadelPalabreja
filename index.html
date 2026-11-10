@@ -251,12 +251,12 @@ body.mode-pj{
 //    Las palabras de La Palabreja se pueden añadir sin PIN.
 const CONFIG={
   firebase:{
-    apiKey:"PEGA_AQUI_TU_API_KEY",
-    authDomain:"",
-    projectId:"",
-    storageBucket:"",
-    messagingSenderId:"",
-    appId:""
+    apiKey:"AIzaSyCUlZzmkinIELkPx352sKUblYaJduFKY5E",
+    authDomain:"paginapadel.firebaseapp.com",
+    projectId:"paginapadel",
+    storageBucket:"paginapadel.firebasestorage.app",
+    messagingSenderId:"272182313407",
+    appId:"1:272182313407:web:bf646f51ffd433b4d4a10a"
   },
   pin:"1234"
 };
@@ -507,7 +507,6 @@ document.addEventListener("click",async ev=>{
       if(Number(a)===Number(c)){ editErr="Un set no puede acabar en empate (set "+(s+1)+")."; render(); return; }
       sets.push([Number(a),Number(c)]); }
     if(!evalSets(sets)){ editErr="El resultado tiene que tener un ganador: más sets ganados por una pareja."; render(); return; }
-    // Firestore no admite arrays anidados: cada set se guarda como {a,b}
     if(await write(()=>db.collection("resultados").doc(id).set({sets:sets.map(([a,b])=>({a,b})),updatedAt:new Date().toISOString()}))){ editing=null; render(); }
     return;
   }
