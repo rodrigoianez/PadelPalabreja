@@ -570,7 +570,8 @@ let statP=0; try{ statP=Number(localStorage.getItem("liguilla-statp"))||0; }catc
 // Partidos de liga y amistosos, en orden de fecha. En los amistosos los invitados quedan como null
 // (no tienen estadísticas propias, pero el partido cuenta para los de la peña que lo jugaron).
 function playedMatches(weeks){
-  const out=[], clean=sets=>sets.filter(s=>s&&s.length===2&&Number(s[0])!==Number(s[1])).map(s=>s.map(Number));
+  // mismos sets válidos que cuenta evalSets
+  const out=[], clean=sets=>sets.filter(s=>s&&s.length===2).map(s=>s.map(Number)).filter(([x,y])=>Number.isFinite(x)&&Number.isFinite(y)&&x!==y);
   for(const w of weeks) for(const m of w.matches){ const r=results[m.id]; const e=r&&evalSets(r.sets);
     if(e) out.push({w,m,e,date:iso(w.date),sets:clean(r.sets)}); }
   const num=v=>amiIsGuest(v)?null:Number(v.slice(1));
@@ -745,7 +746,9 @@ document.addEventListener("pointerover",ev=>{
   tip.textContent=t.dataset.tip; tip.hidden=false;
   tip.style.left=Math.min(box.width-70,Math.max(70,r.left+r.width/2-box.left))+"px"; tip.style.top=(r.top+r.height/2-box.top)+"px";
 });
-let resizeT; window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{ if(route()==="estadisticas") render(); },200); });
+// El gráfico se redibuja solo si cambia el ancho (en el móvil, al hacer scroll cambia el alto y no hace falta)
+let resizeT, lastW=window.innerWidth;
+window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{ if(window.innerWidth===lastW) return; lastW=window.innerWidth; if(route()==="estadisticas") render(); },200); });
 
 // ===== Amistosos: partidos fuera de la liga, con jugadores de la peña o invitados =====
 // Cada jugador se guarda como "#3" (jugador 4 de la peña) o como el nombre del invitado
@@ -833,6 +836,7 @@ document.addEventListener("click",async ev=>{
   for(let k=0;k<3;k++){ const [a,c]=d.sets[k];
     if(a===""&&c==="") continue;
     if(a===""||c==="") return fail("Falta un número en el set "+(k+1)+".");
+    if(badGames(a)||badGames(c)) return fail("Los juegos del set "+(k+1)+" tienen que ser un número de 0 a 7.");
     if(Number(a)===Number(c)) return fail("Un set no puede acabar en empate (set "+(k+1)+").");
     sets.push([Number(a),Number(c)]); }
   if(sets.length&&!evalSets(sets)) return fail("El resultado tiene que tener un ganador: más sets ganados por una pareja.");
@@ -870,6 +874,8 @@ function renderWeeks(weeks,cur){
 }
 
 function setsText(sets){ return (sets||[]).filter(s=>s&&s.length===2).map(s=>s[0]+"-"+s[1]).join(" / "); }
+// Los juegos de un set: un número entero de 0 a 7
+const badGames=v=>!/^\d+$/.test(String(v).trim())||Number(v)>7;
 
 function renderEditor(m){
   const r=results[m.id]; const sets=(r&&r.sets)||[];
@@ -887,11 +893,13 @@ let theme=null; try{ const t=localStorage.getItem("liguilla-theme"); if(t==="lig
 const curTheme=()=>theme||(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
 document.addEventListener("click",ev=>{
   const sb=ev.target.closest&&ev.target.closest("[data-setsound]");
-  if(sb){ try{ sb.dataset.setsound==="on"?localStorage.setItem("liguilla-sound","on"):localStorage.removeItem("liguilla-sound"); }catch(e){}
-    window.dispatchEvent(new Event("court-sound")); render(); return; }
+  // Se marcan los botones a mano, sin volver a pintar Ajustes, para no borrar lo escrito en el formulario de la liga
+  const mark=(sel,on)=>document.querySelectorAll(sel).forEach(x=>x.setAttribute("aria-pressed",on(x)));
+  if(sb){ const on=sb.dataset.setsound==="on"; try{ on?localStorage.setItem("liguilla-sound","on"):localStorage.removeItem("liguilla-sound"); }catch(e){}
+    window.dispatchEvent(new Event("court-sound")); mark("[data-setsound]",x=>(x.dataset.setsound==="on")===on); return; }
   const b=ev.target.closest&&ev.target.closest("[data-settheme]"); if(!b) return;
   theme=b.dataset.settheme; try{ localStorage.setItem("liguilla-theme",theme); }catch(e){}
-  document.documentElement.dataset.theme=theme; render();
+  document.documentElement.dataset.theme=theme; mark("[data-settheme]",x=>x.dataset.settheme===theme);
 });
 
 function renderSettings(){
@@ -944,6 +952,7 @@ document.addEventListener("click",async ev=>{
     const id=b.dataset.save; const sets=[];
     for(let s=0;s<3;s++){ const a=document.getElementById(`in-${id}-s${s}-0`).value, c=document.getElementById(`in-${id}-s${s}-1`).value;
       if(a===""&&c==="") continue; if(a===""||c===""){ editErr="Falta un número en el set "+(s+1)+"."; render(); return; }
+      if(badGames(a)||badGames(c)){ editErr="Los juegos del set "+(s+1)+" tienen que ser un número de 0 a 7."; render(); return; }
       if(Number(a)===Number(c)){ editErr="Un set no puede acabar en empate (set "+(s+1)+")."; render(); return; }
       sets.push([Number(a),Number(c)]); }
     if(!evalSets(sets)){ editErr="El resultado tiene que tener un ganador: más sets ganados por una pareja."; render(); return; }
@@ -971,18 +980,23 @@ render();
   const timer=setTimeout(()=>{ if(!loaded){ loadNote="Los resultados aún no se pueden cargar. Puede que los datos no estén al día."; render(); } },10000);
   let gotCfg=false,gotRes=false;
   const done=()=>{ if(gotCfg&&gotRes){ loaded=true; clearTimeout(timer); } };
-  db.doc("liga/config").onSnapshot(s=>{ if(s.exists) cfg={...DEFAULT_CFG,...s.data()}; const first=!gotCfg; if(!s.metadata.fromCache){gotCfg=true;done();} if(first||route()!=="ajustes") render(); },
+  // Al llegar datos nuevos se repinta, salvo si se está apuntando un resultado o hay un formulario de Ajustes
+  // abierto: ahí solo se quita el aviso de "Cargando…", para no borrar lo que se esté escribiendo
+  const refresh=()=>{ if(editing) return;
+    if(route()==="ajustes"&&document.getElementById("s-name")){ if(loaded) document.querySelectorAll("#view .status").forEach(x=>x.remove()); return; }
+    render(); };
+  db.doc("liga/config").onSnapshot(s=>{ if(s.exists) cfg={...DEFAULT_CFG,...s.data()}; const first=!gotCfg; if(!s.metadata.fromCache){gotCfg=true;done();} if(first) render(); else refresh(); },
     ()=>{ gotCfg=true; done(); render(); });
   db.collection("resultados").onSnapshot(q=>{ const r={}, prev=results; q.docs.forEach(d=>{const v=d.data(); r[d.id]={...v,sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])};}); results=r;
     // Celebración en la pista cuando alguien apunta un resultado nuevo (no al cargar la página)
     if(gotRes) q.docChanges().forEach(ch=>{ const id=ch.doc.id; if(ch.type==="removed"||!r[id]) return;
       const e=evalSets(r[id].sets); if(!e||(prev[id]&&JSON.stringify(prev[id].sets)===JSON.stringify(r[id].sets))) return;
       for(const w of schedule()){ const m=w.matches.find(x=>x.id===id); if(m){ window.dispatchEvent(new CustomEvent("court-celebrate",{detail:(e.winner==="a"?m.a:m.b).map(pname)})); break; } } });
-    if(!q.metadata.fromCache){gotRes=true;done();} if(!editing) render(); },
+    if(!q.metadata.fromCache){gotRes=true;done();} refresh(); },
     ()=>{ gotRes=true; done(); render(); });
   db.collection("amistosos").onSnapshot(q=>{ amiLoadErr=false;
     amistosos=q.docs.map(d=>{ const v=d.data(); return {id:d.id,date:String(v.date||""),a:v.a||[],b:v.b||[],sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])}; }).sort((x,y)=>y.date.localeCompare(x.date));
-    if(!editing) render(); },
+    refresh(); },
     ()=>{ amiLoadErr=true; render(); });
 })();
 
@@ -1285,9 +1299,14 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   let T=0, tNow=0, seg=null, bp={x:1,y:7.2,z:5}, wow=false;
   const queue=[], sc=[0,0]; let server=0;
 
+  // Tamaño de la pista en pantalla: se mide solo cuando cambia, no en cada fotograma
+  let W=0, H=0;
+  const measure=()=>{ W=box.clientWidth; H=box.clientHeight-STRIP; };
+  measure(); if(window.ResizeObserver) new ResizeObserver(measure).observe(box); else window.addEventListener("resize",measure);
   function draw(){
+    if(!W) measure();
     // arriba hay una franja de STRIP px para el marcador; la pista (con su borde) va debajo
-    const W=box.clientWidth, H=box.clientHeight-STRIP, X=x=>(x+MX)/(20+2*MX)*W, Y=y=>STRIP+(y+MY)/(10+2*MY)*H, zf=Math.min(1,H/200);
+    const X=x=>(x+MX)/(20+2*MX)*W, Y=y=>STRIP+(y+MY)/(10+2*MY)*H, zf=Math.min(1,H/200);
     P.forEach((p,i)=>{ const x=X(p.x), y=Y(p.y); pe[i].style.transform=`translate(${x}px,${y}px)`; pn[i].style.transform=`translate(${x}px,${y}px) translate(-50%,-185%)`; });
     const z=bp.z*zf;
     sh.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)}px)`;
@@ -1316,9 +1335,8 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   let ac=null;
   const soundOn=()=>{ try{ return localStorage.getItem("liguilla-sound")==="on"; }catch(e){ return false; } };
   function snd(kind){
-    if(!soundOn()) return;
-    try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==="suspended") ac.resume();
-      const [f,v,dur,type]={hit:[1050,.2,.05,"triangle"],wall:[380,.14,.09,"square"],bounce:[230,.08,.04,"sine"]}[kind];
+    if(!ac||ac.state!=="running"||!soundOn()) return;   // el audio solo se crea tras un toque del usuario (unlock)
+    try{ const [f,v,dur,type]={hit:[1050,.2,.05,"triangle"],wall:[380,.14,.09,"square"],bounce:[230,.08,.04,"sine"]}[kind];
       const o=ac.createOscillator(), g=ac.createGain(), t=ac.currentTime;
       o.type=type; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(f*.55,t+dur);
       g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
@@ -1356,12 +1374,18 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   }
 
   // ---- Jugadores: van por una ruta (para salir y entrar por la puerta); con hora de llegada si van a golpear ----
-  function goTo(i,x,y,dl,via){ const p=P[i], [a,b]=half(team(i)), inside=!via;
-    p.route=[...(via||[]),{x:inside?clamp(x,a,b):x,y:inside?clamp(y,.4,9.6):y}]; p.dl=dl==null?null:dl; }
   const routeLen=(p,r)=>pathLen([p,...r]);
   const doorOut=(i,top)=>{ const x=doorX(team(i)); return top?[{x,y:.5},{x,y:-.6}]:[{x,y:9.5},{x,y:10.6}]; };
   const doorIn=(i,top)=>doorOut(i,top).reverse();
   const isOut=p=>p.y<-.05||p.y>10.05;
+  // Nadie atraviesa la valla: quien está fuera y va a un punto de dentro entra por la puerta, y quien ya está
+  // fuera en ese mismo lado va directo a un punto de fuera. Dentro, cada uno se queda en su campo
+  function goTo(i,x,y,dl,via){ const p=P[i], [a,b]=half(team(i)), tgtOut=y<0||y>10, pOut=isOut(p);
+    let r=via||[];
+    if(pOut&&!tgtOut) r=doorIn(i,p.y<0);
+    else if(pOut&&tgtOut&&(p.y<0)===(y<0)) r=[];
+    if(!tgtOut){ x=clamp(x,a,b); y=clamp(y,.4,9.6); }
+    p.route=[...r,{x,y}]; p.dl=dl==null?null:dl; }
 
   function stepPlayers(dt){
     for(const p of P){ if(!p.route.length){ p.dl=null; continue; }
@@ -1373,14 +1397,13 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   }
 
   // ---- Puntos ----
-  function pointTo(w,label){
+  function pointTo(w){
     sc[w]++;
     const won=(sc[0]>=4||sc[1]>=4)&&Math.abs(sc[0]-sc[1])>=2;
     if(!won&&sc[0]>=3&&sc[1]>=3&&sc[0]===sc[1]){ sc[0]=sc[1]=3; }   // iguales
-    const after=()=>{ showScore(won?w:undefined);
-      if(won) queue.push(hold(bp,0,1800,()=>{ sc[0]=sc[1]=0; server=1-server; newNames(); showScore(); startPoint(); }));
-      else queue.push(hold(bp,0,1000,startPoint)); };
-    after();   // sin cartel por tipo de punto: solo sale el de JUEGO
+    showScore(won?w:undefined);   // el único cartel es el de JUEGO
+    if(won) queue.push(hold(bp,0,1800,()=>{ sc[0]=sc[1]=0; server=1-server; newNames(); showScore(); startPoint(); }));
+    else queue.push(hold(bp,0,1000,startPoint));
   }
 
   // Saque: desde el fondo, en diagonal, alternando lado en cada punto. Quien resta y su compañero, al fondo
@@ -1396,16 +1419,16 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   }
 
   // Golpes: velocidad V (m/s), altura del vuelo H, distancia a la red del bote dn, recorrido tras el bote len,
-  // altura del bote bh, probabilidad de error y de golpe ganador, y el cartel si es ganador
+  // altura del bote bh, y probabilidad de error y de golpe ganador
   const SHOT={
-    saque:   {V:11,H:9, dn:[3.5,6.3],len:[5,8],    bh:7, err:.04,win:.05,lbl:"¡ACE!"},
+    saque:   {V:11,H:9, dn:[3.5,6.3],len:[5,8],    bh:7, err:.04,win:.05},
     normal:  {V:15,H:12,dn:[4.5,8.8],len:[5,9],    bh:8, err:.05,win:.05},
     chiquita:{V:9, H:5, dn:[1.6,3.4],len:[3,5],    bh:4, err:.07,win:.1},
-    globo:   {V:8, H:38,dn:[7.2,9.3],len:[6,10],   bh:18,err:.04,win:.05,lbl:"¡GLOBAZO!"},
-    dejada:  {V:8, H:10,dn:[.8,2.2], len:[1.2,2.5],bh:4, err:.12,win:.3, lbl:"¡DEJADA!"},
+    globo:   {V:8, H:38,dn:[7.2,9.3],len:[6,10],   bh:18,err:.04,win:.05},
+    dejada:  {V:8, H:10,dn:[.8,2.2], len:[1.2,2.5],bh:4, err:.12,win:.3},
     volea:   {V:16,H:6, dn:[4,8.5],  len:[5,8],    bh:7, err:.06,win:.14},
     bandeja: {V:14,H:9, dn:[6.5,9],  len:[5,7],    bh:6, err:.05,win:.05},
-    vibora:  {V:19,H:6, dn:[5.5,8.5],len:[5,8],    bh:5, err:.08,win:.22,lbl:"¡VÍBORA!"},
+    vibora:  {V:19,H:6, dn:[5.5,8.5],len:[5,8],    bh:5, err:.08,win:.22},
     remate:  {V:24,H:3, dn:[5,8.5],  len:[8,12],   bh:20,err:.08,win:.28},
     rescate: {V:12,H:28,dn:[3,8],    len:[5,8],    bh:8, err:.15,win:.06},
   };
@@ -1449,12 +1472,11 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
     const recv=y=>o*2+(y<5?0:1);
     const tr=trace(L,d,R(S.len));
     // Golpe ganador: el rival corre, pero la bola bota dos veces (o se va por la puerta)
-    const winner=lbl=>{ const ri=recv(L.y), rp=P[ri], E=tr.pts[tr.pts.length-1];
+    const winner=()=>{ const ri=recv(L.y), rp=P[ri], E=tr.pts[tr.pts.length-1];
       goTo(ri,rp.x+(L.x-rp.x)*.6,rp.y+(L.y-rp.y)*.6);
       queue.push(fly([F,L],zF,0,S.H,S.V,()=>snd("bounce")), fly(tr.pts,0,0,S.bh,S.V*.55,()=>snd("bounce"),tr.wallAt),
-        hold(E,0,180,()=>pointTo(t,lbl===undefined?S.lbl:lbl))); };
-    if(opt.win) return winner(opt.label);
-    if(Math.random()<S.win) return winner();
+        hold(E,0,180,()=>pointTo(t))); };
+    if(opt.win||Math.random()<S.win) return winner();
 
     // En el aire: volea en la red, o bandeja / víbora / remate a un globo
     const forced=opt.forceReply, ri0=recv(L.y), nearNet=Math.abs(P[ri0].x-10)<4.5;
@@ -1482,7 +1504,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
     if(mode!=="fuera"&&(dir>0?C.x<10.3:C.x>9.7)) return winner();   // vuelve a su campo tras el cristal: punto
     const s1=fly([F,L],zF,0,S.H,S.V,()=>snd("bounce")), s2=fly(cut(tr.pts,s),0,5,S.bh,S.V*.55,null,tr.wallAt.filter(w=>w<s));
     const tC=s1.d+s2.d, top=C.y<5, ri=mode==="fuera"?o*2+(top?0:1):recv(C.y), via=mode==="fuera"?doorOut(ri,top):null;
-    if(routeLen(P[ri],[...(via||[]),C])/(tC/1000)>8.5) return winner(mode==="fuera"?"¡POR LA PUERTA!":undefined);   // no llega
+    if(routeLen(P[ri],[...(via||[]),C])/(tC/1000)>8.5) return winner();   // no llega
     goTo(ri,C.x,C.y,tNow+tC,via);
     goTo(o*2+1-(ri%2),mode==="fuera"?10+dir*6:clamp(C.x,oa,ob),ri%2?2.8:7.2);
     s2.end=()=>shoot(ri,C,mode==="fuera"?"rescate":nextAfter(C,mode),5);
@@ -1528,18 +1550,18 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
     }
     const s1=fly([F,L],zF,0,S.H,S.V,()=>snd("bounce"));
     const s2=fly(path,0,0,exit==="por3"?40:46,S.V*.5,()=>snd("bounce"),exit==="por3"?[dist(L,path[1])]:[]);
-    const label=exit==="por3"?"¡POR 3!":"¡POR 4!", ri=o*2+(top?0:1);
+    const ri=o*2+(top?0:1);
     if(exit==="por3"&&opt.rescue!=="no"){
       const s3=fly([O,O2],0,4,7,4), tC=s1.d+s2.d+s3.d, via=doorOut(ri,top);
       const can=routeLen(P[ri],[...via,O2])/(tC/1000)<9;
       if(opt.rescue==="win"||(can&&Math.random()<.5)){
         goTo(ri,O2.x,O2.y,tNow+tC,via); goTo(o*2+1-(ri%2),10+dir*6,top?7.2:2.8);
-        s3.end=()=>shoot(ri,O2,"rescate",4,opt.rescue==="win"?{win:true,label:"¡DESDE FUERA!"}:undefined);
+        s3.end=()=>shoot(ri,O2,"rescate",4,opt.rescue==="win"?{win:true}:undefined);
         queue.push(s1,s2,s3); return;
       }
       goTo(ri,doorX(o),top?.6:9.4);   // va hacia la puerta, pero no llega
     }
-    queue.push(s1,s2,fly([O,O2],0,0,5,3),hold(O2,0,150,()=>pointTo(t,label)));
+    queue.push(s1,s2,fly([O,O2],0,0,5,3),hold(O2,0,150,()=>pointTo(t)));
   }
 
   function stepBall(){
