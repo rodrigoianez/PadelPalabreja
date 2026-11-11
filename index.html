@@ -40,7 +40,7 @@ header.band{--court-out:#174B85;background:var(--court-out);color:var(--court-in
 :root[data-theme="dark"] header.band{--court-out:#123A66}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header.band{--court-out:#123A66}}
 /* Cabecera: pista de pádel vista desde arriba, con partido animado (el código está al final de la página) */
-header.band .court{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+header.band .court{position:absolute;left:0;top:26px;width:100%;height:calc(100% - 26px);pointer-events:none}   /* 26px: franja del marcador */
 .court *{fill:none;stroke:rgba(255,255,255,.55);stroke-width:2.5;vector-effect:non-scaling-stroke}
 .court .surf{fill:var(--court);stroke:none}
 .court .glass{stroke:rgba(190,225,255,.4);stroke-width:7}
@@ -50,7 +50,7 @@ header.band .court{position:absolute;inset:0;width:100%;height:100%;pointer-even
 .court .net{stroke:rgba(255,255,255,.9);stroke-width:3.5}
 header .wrap{padding-block:0;position:relative;z-index:1}
 header.band nav.tabs{margin-top:4px}
-.courtbox{position:relative;height:clamp(130px,28vw,220px);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.courtbox{position:relative;height:clamp(156px,calc(28vw + 26px),246px);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .pn{position:absolute;left:0;top:0;font:700 10px/1 var(--body);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7);white-space:nowrap;pointer-events:none;will-change:transform;transform:translate(-200px,-200px)}
 .pl.jump{animation:pljump .35s ease-in-out infinite alternate}
 @keyframes pljump{to{scale:1.7}}
@@ -60,7 +60,7 @@ header.band nav.tabs{margin-top:4px}
 .ball-sh{background:rgba(0,0,0,.3);filter:blur(1px)}
 .pl{position:absolute;left:0;top:0;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#0A0F1A;box-shadow:0 0 0 1.5px rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.35);will-change:transform;transform:translate(-50px,-50px)}
 .ball{z-index:2}.ball-sh{z-index:1}
-.cscore{position:absolute;left:0;top:0;transform:translateY(-50%);pointer-events:none;z-index:0;display:flex;align-items:center;gap:7px;background:rgba(10,15,26,.85);color:#fff;border-radius:999px;padding:1px 10px;font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3;white-space:nowrap}
+.cscore{position:absolute;left:50%;top:13px;transform:translate(-50%,-50%);pointer-events:none;z-index:3;display:flex;align-items:center;gap:7px;background:rgba(10,15,26,.85);color:#fff;border-radius:999px;padding:1px 10px;font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3;white-space:nowrap}
 .cscore b{min-width:2.2ch;text-align:center}
 .cscore i{width:4px;height:4px;border-radius:50%;background:var(--ball)}
 .cscore .arr{width:0;height:0;border-block:5px solid transparent}
@@ -1257,6 +1257,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   const box=document.querySelector(".courtbox"), ball=document.getElementById("ball"), sh=document.getElementById("ball-sh");
   if(!box||!ball||!sh) return;
   const MX=1.5, MY=1.6;                           // margen fuera de la pista, en metros (igual que el viewBox)
+  const STRIP=26;                                 // franja del marcador, en px (igual que en el CSS)
   const DOORS=[[8,9.2],[10.8,12]];                // puertas en los laterales, una por campo y lado
   const inDoor=x=>DOORS.some(([a,b])=>x>a+.12&&x<b-.12);
   const doorX=t=>t?11.4:8.6, VMAX=5.5;
@@ -1269,7 +1270,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   // Elementos: jugadores, sus nombres y el marcador
   const pe=[0,1,2,3].map(()=>{ const d=document.createElement("div"); d.className="pl"; box.insertBefore(d,sh); return d; });
   const pn=[0,1,2,3].map(()=>{ const d=document.createElement("div"); d.className="pn"; box.appendChild(d); return d; });
-  // Marcador: una pastilla abajo a la izquierda, fuera de la pista (por debajo de la bola y los jugadores)
+  // Marcador: una pastilla arriba en el centro, en su propia franja por encima de la pista
   const scoreEl=document.createElement("div"); scoreEl.className="cscore"; box.querySelector("svg").after(scoreEl);
   box.title="Toca la pista para ver un punto espectacular";
   // Nombres: 4 jugadores de la peña al azar en cada juego
@@ -1285,9 +1286,9 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   const queue=[], sc=[0,0]; let server=0;
 
   function draw(){
-    const W=box.clientWidth, H=box.clientHeight, X=x=>(x+MX)/(20+2*MX)*W, Y=y=>(y+MY)/(10+2*MY)*H, zf=Math.min(1,H/200);
+    // arriba hay una franja de STRIP px para el marcador; la pista (con su borde) va debajo
+    const W=box.clientWidth, H=box.clientHeight-STRIP, X=x=>(x+MX)/(20+2*MX)*W, Y=y=>STRIP+(y+MY)/(10+2*MY)*H, zf=Math.min(1,H/200);
     P.forEach((p,i)=>{ const x=X(p.x), y=Y(p.y); pe[i].style.transform=`translate(${x}px,${y}px)`; pn[i].style.transform=`translate(${x}px,${y}px) translate(-50%,-185%)`; });
-    scoreEl.style.left=X(0)+"px"; scoreEl.style.top=Y(10+MY/2)+"px";
     const z=bp.z*zf;
     sh.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)}px)`;
     ball.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)-z}px) scale(${1+z/60})`;
