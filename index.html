@@ -36,28 +36,42 @@
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-header.band{background:var(--court);color:var(--court-ink);position:relative;overflow:hidden}
-/* Fondo: pista de pádel vista desde arriba (perímetro, red, líneas de saque y central con sus dos T) */
+header.band{--court-out:#174B85;background:var(--court-out);color:var(--court-ink);position:relative;overflow:hidden}
+:root[data-theme="dark"] header.band{--court-out:#123A66}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header.band{--court-out:#123A66}}
+/* Cabecera: pista de pádel vista desde arriba, con partido animado (el código está al final de la página) */
 header.band .court{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.court *{fill:none;stroke:rgba(255,255,255,.55);stroke-width:3;vector-effect:non-scaling-stroke}
-.court .glass{stroke:rgba(190,225,255,.35);stroke-width:12}
-.court .mesh{stroke:rgba(255,255,255,.3);stroke-width:6;stroke-dasharray:2 4}
-.court .net-sh{stroke:rgba(0,0,0,.22);stroke-width:12}
-.court .net{stroke:rgba(255,255,255,.9);stroke-width:4}
+.court *{fill:none;stroke:rgba(255,255,255,.55);stroke-width:2.5;vector-effect:non-scaling-stroke}
+.court .surf{fill:var(--court);stroke:none}
+.court .glass{stroke:rgba(190,225,255,.4);stroke-width:7}
+.court .mesh{stroke:rgba(255,255,255,.35);stroke-width:5;stroke-dasharray:2 3}
+.court .post{stroke:rgba(255,255,255,.75);stroke-width:2.5}
+.court .net-sh{stroke:rgba(0,0,0,.22);stroke-width:10}
+.court .net{stroke:rgba(255,255,255,.9);stroke-width:3.5}
 header .wrap{padding-block:0;position:relative;z-index:1}
-header.band nav.tabs{margin-top:8px}
-.courtbox{position:relative;height:clamp(120px,24vw,190px)}
+header.band nav.tabs{margin-top:4px}
+.courtbox{position:relative;height:clamp(150px,32vw,250px);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pn{position:absolute;left:0;top:0;font:700 10px/1 var(--body);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7);white-space:nowrap;pointer-events:none;will-change:transform;transform:translate(-200px,-200px)}
+.pl.jump{animation:pljump .35s ease-in-out infinite alternate}
+@keyframes pljump{to{scale:1.7}}
+.cscore .lbl{color:var(--ball);min-width:0}
 .ball,.ball-sh{position:absolute;left:0;top:0;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;will-change:transform;transform:translate(-50px,-50px)}
 .ball{background:var(--ball);box-shadow:inset -2px -2px 0 rgba(0,0,0,.18),0 0 6px rgba(217,229,76,.5)}
 .ball-sh{background:rgba(0,0,0,.3);filter:blur(1px)}
 .pl{position:absolute;left:0;top:0;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#0A0F1A;box-shadow:0 0 0 1.5px rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.35);will-change:transform;transform:translate(-50px,-50px)}
 .ball{z-index:2}.ball-sh{z-index:1}
-.cscore{position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:8px;background:rgba(10,15,26,.82);color:#fff;border-radius:999px;padding:2px 12px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3}
+.cscore{position:absolute;top:3px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:8px;background:rgba(10,15,26,.82);color:#fff;border-radius:999px;padding:2px 12px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3}
 .cscore b{min-width:2.2ch;text-align:center}
 .cscore i{width:4px;height:4px;border-radius:50%;background:var(--ball)}
 .cscore .arr{width:0;height:0;border-block:5px solid transparent}
 .cscore .arr.l{border-right:7px solid var(--ball)}
 .cscore .arr.r{border-left:7px solid var(--ball)}
+.tabbtn{flex:none;background:none;border:0;border-radius:8px 8px 0 0;color:var(--court-ink);opacity:.8;padding:8px 10px 10px;cursor:pointer;display:inline-flex;align-items:center}
+.tabbtn:hover{opacity:1}
+.tabbtn svg{transition:transform .2s}
+header.band.mini .courtbox{display:none}
+header.band.mini nav.tabs{margin-top:10px}
+header.band.mini .tabbtn svg{transform:rotate(180deg)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,8vw,52px);line-height:1;margin:6px 0 14px;text-wrap:balance;text-transform:uppercase;letter-spacing:.01em}
 .next{display:inline-flex;gap:8px;align-items:center;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px}
@@ -307,14 +321,16 @@ body.mode-pj{
 <header class="band">
   <h1 id="title" class="sr">Liguilla de los Miércoles</h1>
   <div class="courtbox" aria-hidden="true">
-    <svg class="court" viewBox="0 0 200 100" preserveAspectRatio="none">
-      <!-- paredes: cristal en los fondos y en los 4 m de cada lateral, valla en el centro de los laterales -->
-      <path class="glass" d="M40 0H0V100H40M160 0H200V100H160"/>
-      <path class="mesh" d="M40 0H160M40 100H160"/>
+    <!-- Pista en metros (20 x 10) con un margen alrededor para ver la bola cuando sale -->
+    <svg class="court" viewBox="-2.2 -2.6 24.4 15.2" preserveAspectRatio="none">
+      <rect class="surf" x="0" y="0" width="20" height="10"/>
+      <!-- paredes: cristal en los fondos y en los 4 m de cada lateral; valla en el resto, con 4 puertas junto a la red -->
+      <path class="glass" d="M4 0H0V10H4M16 0H20V10H16"/>
+      <path class="mesh" d="M4 0H8M9.2 0H10.8M12 0H16M4 10H8M9.2 10H10.8M12 10H16"/>
+      <path class="post" d="M8 -.35V.35M9.2 -.35V.35M10.8 -.35V.35M12 -.35V.35M8 9.65V10.35M9.2 9.65V10.35M10.8 9.65V10.35M12 9.65V10.35"/>
       <!-- líneas de saque (a 6,95 m de la red) y central, que forma las dos T -->
-      <line x1="30.5" y1="0" x2="30.5" y2="100"/><line x1="169.5" y1="0" x2="169.5" y2="100"/>
-      <line x1="30.5" y1="50" x2="169.5" y2="50"/>
-      <line class="net-sh" x1="100" y1="0" x2="100" y2="100"/><line class="net" x1="100" y1="0" x2="100" y2="100"/>
+      <path d="M3.05 0V10M16.95 0V10M3.05 5H16.95"/>
+      <line class="net-sh" x1="10" y1="-.35" x2="10" y2="10.35"/><line class="net" x1="10" y1="-.35" x2="10" y2="10.35"/>
     </svg>
     <div class="ball-sh" id="ball-sh"></div><div class="ball" id="ball"></div>
   </div>
@@ -324,10 +340,21 @@ body.mode-pj{
       <a href="#jornadas" data-v="jornadas">Jornadas</a>
       <a href="#amistosos" data-v="amistosos">Amistosos</a>
       <a href="#estadisticas" data-v="estadisticas"><span class="full">Estadísticas</span><span class="short">Stats</span></a>
+      <button type="button" class="tabbtn" id="court-tg" aria-pressed="false" aria-label="Ocultar la pista" title="Ocultar la pista"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
       <a href="#ajustes" data-v="ajustes" id="tab-ajustes" aria-label="Ajustes"><span class="full">Ajustes</span><span class="short"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h10M4 12h4M12 12h8M4 18h12"/><circle cx="17" cy="6" r="2.2"/><circle cx="10" cy="12" r="2.2"/><circle cx="18" cy="18" r="2.2"/></svg></span></a>
     </nav>
   </div>
 </header>
+<script>
+// Minimizar la pista de la cabecera (se recuerda en este dispositivo). Oculta, la animación se para sola.
+(()=>{ const h=document.querySelector("header.band"), b=document.getElementById("court-tg");
+  const set=mini=>{ h.classList.toggle("mini",mini); b.setAttribute("aria-pressed",mini);
+    const t=mini?"Mostrar la pista":"Ocultar la pista"; b.setAttribute("aria-label",t); b.title=t; };
+  let mini=false; try{ mini=localStorage.getItem("liguilla-court")==="mini"; }catch(e){}
+  set(mini);
+  b.addEventListener("click",()=>{ mini=!mini; set(mini); try{ mini?localStorage.setItem("liguilla-court","mini"):localStorage.removeItem("liguilla-court"); }catch(e){} });
+})();
+</script>
 <main><div class="wrap" id="view"></div></main>
 <div class="pj" id="pj" hidden>
   <div class="bar"><div class="bar-in">
@@ -506,6 +533,10 @@ function render(){
   document.getElementById("sw-liga").setAttribute("aria-current",pj?"false":"page"); document.getElementById("sw-pj").setAttribute("aria-current",pj?"page":"false");
   if(pj) return;
   const weeks=schedule(); const cur=currentWeek(weeks);
+  // Nombres para la pista de la cabecera: el próximo partido sin resultado
+  const nm=cur?(cur.matches.find(m=>!(results[m.id]&&evalSets(results[m.id].sets)))||cur.matches[0]):null;
+  const cn=nm?{a:nm.a.map(pname),b:nm.b.map(pname)}:null;
+  if(JSON.stringify(cn)!==JSON.stringify(window.__courtNames||null)){ window.__courtNames=cn; window.dispatchEvent(new Event("court-names")); }
   document.getElementById("title").textContent=cfg.name||DEFAULT_CFG.name;
   const v=route();
   document.querySelectorAll("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===v?"page":"false"));
@@ -856,6 +887,9 @@ function renderEditor(m){
 let theme=null; try{ const t=localStorage.getItem("liguilla-theme"); if(t==="light"||t==="dark") theme=t; }catch(e){}
 const curTheme=()=>theme||(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
 document.addEventListener("click",ev=>{
+  const sb=ev.target.closest&&ev.target.closest("[data-setsound]");
+  if(sb){ try{ sb.dataset.setsound==="on"?localStorage.setItem("liguilla-sound","on"):localStorage.removeItem("liguilla-sound"); }catch(e){}
+    window.dispatchEvent(new Event("court-sound")); render(); return; }
   const b=ev.target.closest&&ev.target.closest("[data-settheme]"); if(!b) return;
   theme=b.dataset.settheme; try{ localStorage.setItem("liguilla-theme",theme); }catch(e){}
   document.documentElement.dataset.theme=theme; render();
@@ -864,9 +898,14 @@ document.addEventListener("click",ev=>{
 function renderSettings(){
   const p=cfg.players||DEFAULT_CFG.players;
   const seg=(v,t)=>`<button data-settheme="${v}" aria-pressed="${curTheme()===v}">${t}</button>`;
+  let sOn=false; try{ sOn=localStorage.getItem("liguilla-sound")==="on"; }catch(e){}
+  const snd=(v,t)=>`<button data-setsound="${v}" aria-pressed="${(v==="on")===sOn}">${t}</button>`;
   const look=`<section class="card settings"><h3 class="sh" style="margin:0">Tema</h3>
     <div class="seg" role="group" aria-label="Tema">${seg("light","Claro")}${seg("dark","Oscuro")}</div>
-    <p class="note" style="margin:0">Se guarda en este dispositivo.</p></section>`;
+    <p class="note" style="margin:0">Se guarda en este dispositivo.</p>
+    <h3 class="sh" style="margin:6px 0 0">Sonido de la pista</h3>
+    <div class="seg" role="group" aria-label="Sonido de la pista">${snd("on","Sí")}${snd("off","No")}</div>
+    <p class="note" style="margin:0">El golpe de la pala, los botes y el cristal en la animación de arriba. Toca la pista para ver un punto espectacular.</p></section>`;
   if(!(canWrite!==false&&!readOnly&&db)) return "<h2>Ajustes</h2>"+look;
   return `<h2>Ajustes</h2><section class="card settings"><h3 class="sh" style="margin:0">Liga</h3>
     <label for="s-name">Nombre de la liga<input id="s-name" value="${esc(cfg.name||"")}"></label>
@@ -935,7 +974,12 @@ render();
   const done=()=>{ if(gotCfg&&gotRes){ loaded=true; clearTimeout(timer); } };
   db.doc("liga/config").onSnapshot(s=>{ if(s.exists) cfg={...DEFAULT_CFG,...s.data()}; const first=!gotCfg; if(!s.metadata.fromCache){gotCfg=true;done();} if(first||route()!=="ajustes") render(); },
     ()=>{ gotCfg=true; done(); render(); });
-  db.collection("resultados").onSnapshot(q=>{ const r={}; q.docs.forEach(d=>{const v=d.data(); r[d.id]={...v,sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])};}); results=r; if(!q.metadata.fromCache){gotRes=true;done();} if(!editing) render(); },
+  db.collection("resultados").onSnapshot(q=>{ const r={}, prev=results; q.docs.forEach(d=>{const v=d.data(); r[d.id]={...v,sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])};}); results=r;
+    // Celebración en la pista cuando alguien apunta un resultado nuevo (no al cargar la página)
+    if(gotRes) q.docChanges().forEach(ch=>{ const id=ch.doc.id; if(ch.type==="removed"||!r[id]) return;
+      const e=evalSets(r[id].sets); if(!e||(prev[id]&&JSON.stringify(prev[id].sets)===JSON.stringify(r[id].sets))) return;
+      for(const w of schedule()){ const m=w.matches.find(x=>x.id===id); if(m){ window.dispatchEvent(new CustomEvent("court-celebrate",{detail:(e.winner==="a"?m.a:m.b).map(pname)})); break; } } });
+    if(!q.metadata.fromCache){gotRes=true;done();} if(!editing) render(); },
     ()=>{ gotRes=true; done(); render(); });
   db.collection("amistosos").onSnapshot(q=>{ amiLoadErr=false;
     amistosos=q.docs.map(d=>{ const v=d.data(); return {id:d.id,date:String(v.date||""),a:v.a||[],b:v.b||[],sets:(v.sets||[]).map(s=>Array.isArray(s)?s:[s.a,s.b])}; }).sort((x,y)=>y.date.localeCompare(x.date));
@@ -1205,167 +1249,278 @@ draw(); firstVisit();
 if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
 
 // ===== Partido de la cabecera: 4 jugadores, bola y marcador del juego, vistos desde arriba =====
-// La pista va en metros: x de 0 a 20 (red en x=10), y de 0 a 10. Pareja 0 a la izquierda
-// (jugadores 0 arriba y 1 abajo), pareja 1 a la derecha (2 arriba y 3 abajo); cada jugador cubre su mitad.
-// La bola recorre tramos (vuelo, bote, rebote en el cristal…) y al acabar cada tramo se decide lo siguiente.
-// La altura de la bola se ve porque se separa de su sombra y crece un poco.
+// Pista en metros: x de 0 a 20 (red en x=10), y de 0 a 10, con margen alrededor para ver la bola fuera.
+// Pareja 0 a la izquierda (jugadores 0 arriba y 1 abajo), pareja 1 a la derecha (2 arriba y 3 abajo).
+// La bola recorre tramos: cada tramo es una línea quebrada (los rebotes en las paredes son sus vértices)
+// con una parábola de altura encima; al acabar un tramo se decide lo siguiente. La altura se ve porque
+// la bola se separa de su sombra y crece. Al tocar la pista, el siguiente golpe acaba en un punto espectacular.
 (()=>{
   const box=document.querySelector(".courtbox"), ball=document.getElementById("ball"), sh=document.getElementById("ball-sh");
   if(!box||!ball||!sh) return;
-  const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const dist=(a,b)=>Math.hypot(b.x-a.x,b.y-a.y), along=(p,d,s)=>({x:p.x+d.x*s,y:p.y+d.y*s});
+  const MX=2.2, MY=2.6;                           // margen fuera de la pista, en metros (igual que el viewBox)
+  const DOORS=[[8,9.2],[10.8,12]];                // puertas en los laterales, una por campo y lado
+  const inDoor=x=>DOORS.some(([a,b])=>x>a+.12&&x<b-.12);
+  const doorX=t=>t?11.4:8.6, VMAX=5.5;
+  const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), R=([a,b])=>rnd(a,b);
+  const dist=(a,b)=>Math.hypot(b.x-a.x,b.y-a.y);
+  const pathLen=pts=>{ let s=0; for(let k=1;k<pts.length;k++) s+=dist(pts[k-1],pts[k]); return s; };
   const pick=w=>{ let r=Math.random()*Object.values(w).reduce((a,b)=>a+b,0); for(const k in w){ r-=w[k]; if(r<0) return k; } return Object.keys(w)[0]; };
-  const team=i=>i<2?0:1, VMAX=4.5;
+  const team=i=>i<2?0:1, half=t=>t?[10.4,19.6]:[.4,9.6];
 
+  // Elementos: jugadores, sus nombres y el marcador
   const pe=[0,1,2,3].map(()=>{ const d=document.createElement("div"); d.className="pl"; box.insertBefore(d,sh); return d; });
+  const pn=[0,1,2,3].map(()=>{ const d=document.createElement("div"); d.className="pn"; box.appendChild(d); return d; });
   const scoreEl=document.createElement("div"); scoreEl.className="cscore"; box.appendChild(scoreEl);
-  const P=[[6,2.8],[6,7.2],[14,2.8],[14,7.2]].map(([x,y])=>({x,y,tx:x,ty:y,dl:null}));
-  let T=0, tNow=0, seg=null, bp={x:1,y:7.2,z:5};
+  box.title="Toca la pista para ver un punto espectacular";
+  function setNames(){ const n=window.__courtNames, list=n?[...n.a,...n.b]:[];
+    pn.forEach((d,i)=>{ const s=String(list[i]||"").trim().split(/\s+/)[0]||""; d.textContent=s.length>7?s.slice(0,6)+".":s; }); }
+  setNames(); window.addEventListener("court-names",setNames);
+
+  const P=[[6,2.8],[6,7.2],[14,2.8],[14,7.2]].map(([x,y])=>({x,y,route:[],dl:null}));
+  let T=0, tNow=0, seg=null, bp={x:1,y:7.2,z:5}, wow=false;
   const queue=[], sc=[0,0]; let server=0;
 
   function draw(){
-    const W=box.clientWidth, H=box.clientHeight, X=x=>x/20*W, Y=y=>y/10*H, zf=Math.min(1,H/170);
-    P.forEach((p,i)=>{ pe[i].style.transform=`translate(${X(p.x)}px,${Y(p.y)}px)`; });
+    const W=box.clientWidth, H=box.clientHeight, X=x=>(x+MX)/(20+2*MX)*W, Y=y=>(y+MY)/(10+2*MY)*H, zf=Math.min(1,H/200);
+    P.forEach((p,i)=>{ const x=X(p.x), y=Y(p.y); pe[i].style.transform=`translate(${x}px,${y}px)`; pn[i].style.transform=`translate(${x}px,${y}px) translate(-50%,-185%)`; });
     const z=bp.z*zf;
     sh.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)}px)`;
     ball.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)-z}px) scale(${1+z/60})`;
   }
-  // Marcador del juego: 0, 15, 30, 40, iguales y ventaja (AD)
+
+  // ---- Marcador: 0, 15, 30, 40, iguales y ventaja (AD). Los textos especiales esperan si hay celebración ----
+  let celebUntil=0, pending=null;
+  function paint(html){ if(Date.now()<celebUntil){ pending=html; return; } scoreEl.innerHTML=html; }
   function showScore(won){
+    if(won!=null) return paint(won===0?`<span class="arr l"></span><b>JUEGO</b>`:`<b>JUEGO</b><span class="arr r"></span>`);
     const N=["0","15","30","40"], [a,b]=sc;
-    if(won!=null){ scoreEl.innerHTML=won===0?`<span class="arr l"></span><b>JUEGO</b>`:`<b>JUEGO</b><span class="arr r"></span>`; return; }   // la flecha señala a la pareja ganadora
     const lab=k=>a>=3&&b>=3?(a===b?"40":(k===0?a>b:b>a)?"AD":"40"):N[Math.min(3,sc[k])];
-    scoreEl.innerHTML=`<b>${lab(0)}</b><i></i><b>${lab(1)}</b>`;
+    paint(`<b>${lab(0)}</b><i></i><b>${lab(1)}</b>`);
   }
+  const showLabel=t=>paint(`<b class="lbl">${t}</b>`);
+  window.addEventListener("court-celebrate",ev=>{
+    const names=(ev.detail||[]).map(s=>String(s).split(/\s+/)[0]).join(" y ");
+    const prev=pending||scoreEl.innerHTML; celebUntil=0; showLabel("¡GANAN "+names.toUpperCase()+"!");
+    celebUntil=Date.now()+4500; pending=prev;
+    const n=window.__courtNames, list=n?[...n.a,...n.b]:[];
+    pe.forEach((d,i)=>d.classList.toggle("jump",(ev.detail||[]).includes(list[i])));
+    setTimeout(()=>{ celebUntil=0; pe.forEach(d=>d.classList.remove("jump")); if(pending){ scoreEl.innerHTML=pending; pending=null; } },4500);
+  });
+
+  // ---- Sonido opcional (Ajustes): golpe de pala, bote y cristal ----
+  let ac=null;
+  const soundOn=()=>{ try{ return localStorage.getItem("liguilla-sound")==="on"; }catch(e){ return false; } };
+  function snd(kind){
+    if(!soundOn()) return;
+    try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==="suspended") ac.resume();
+      const [f,v,dur,type]={hit:[1050,.2,.05,"triangle"],wall:[380,.14,.09,"square"],bounce:[230,.08,.04,"sine"]}[kind];
+      const o=ac.createOscillator(), g=ac.createGain(), t=ac.currentTime;
+      o.type=type; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(f*.55,t+dur);
+      g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t+dur+.02); }catch(e){}
+  }
+  const unlock=()=>{ if(soundOn()){ try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); ac.resume(); }catch(e){} } };
+  document.addEventListener("pointerdown",unlock,{passive:true}); window.addEventListener("court-sound",unlock);
+
   if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){ showScore(); draw(); return; }
+  box.addEventListener("click",()=>{ wow=true; });
 
-  // Tramos de bola: de a a b, altura inicial za y final zb, con una parábola de alto h encima
-  const fl=(a,b,za,zb,h,v,end)=>({a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},za,zb,h,d:Math.max(180,dist(a,b)/v*1000),end});
-  // Igual, pero pasando por la pared en m: un solo vuelo continuo en el que la pared solo cambia la dirección
-  const flw=(a,m,b,za,zb,h,v,end)=>({a:{x:a.x,y:a.y},m:{x:m.x,y:m.y},b:{x:b.x,y:b.y},za,zb,h,d:Math.max(180,(dist(a,m)+dist(m,b))/v*1000),end});
-  const segLen=s=>s.m?dist(s.a,s.m)+dist(s.m,s.b):dist(s.a,s.b);
-  const wait=(p,z,ms,end)=>({a:{x:p.x,y:p.y},b:{x:p.x,y:p.y},za:z,zb:z,h:0,d:ms,end});
-  function goTo(i,x,y,dl){ const t=team(i), p=P[i];
-    p.tx=clamp(x,t?10.4:.4,t?19.6:9.6); p.ty=clamp(y,.4,9.6); p.dl=dl==null?null:dl; }
+  // ---- Tramos de bola ----
+  const fly=(pts,za,zb,h,v,end,wallAt)=>({pts:pts.map(p=>({x:p.x,y:p.y})),za,zb,h,d:Math.max(160,pathLen(pts)/v*1000),end,wallAt:wallAt||[],wk:0});
+  const hold=(p,z,ms,end)=>({pts:[{x:p.x,y:p.y},{x:p.x,y:p.y}],za:z,zb:z,h:0,d:ms,end,wallAt:[],wk:0});
+  function posOn(pts,s){ for(let k=1;k<pts.length;k++){ const l=dist(pts[k-1],pts[k]); if(s<=l||k===pts.length-1){ const u=l?clamp(s/l,0,1):1; return {x:pts[k-1].x+(pts[k].x-pts[k-1].x)*u,y:pts[k-1].y+(pts[k].y-pts[k-1].y)*u}; } s-=l; } return {...pts[pts.length-1]}; }
+  function cut(pts,s){ const out=[pts[0]]; for(let k=1;k<pts.length;k++){ const l=dist(pts[k-1],pts[k]); if(s<=l){ out.push(posOn([pts[k-1],pts[k]],s)); return out; } out.push(pts[k]); s-=l; } return out; }
+  // Desde p en la dirección d, len metros: rebota en el cristal y la valla; por las puertas sale fuera
+  function trace(p,d,len){
+    const pts=[{x:p.x,y:p.y}], wallAt=[]; let cur={x:p.x,y:p.y}, dir={x:d.x,y:d.y}, left=len, out=false, outAt, walked=0;
+    for(let it=0;it<5&&left>1e-6;it++){
+      let s=Infinity, wall=null;
+      if(!out){
+        if(dir.x>1e-9){ const k=(20-cur.x)/dir.x; if(k<s){ s=k; wall="x"; } } else if(dir.x<-1e-9){ const k=-cur.x/dir.x; if(k<s){ s=k; wall="x"; } }
+        if(dir.y>1e-9){ const k=(10-cur.y)/dir.y; if(k<s){ s=k; wall="y"; } } else if(dir.y<-1e-9){ const k=-cur.y/dir.y; if(k<s){ s=k; wall="y"; } }
+      }
+      s=Math.max(0,s);
+      if(s>=left){ cur={x:cur.x+dir.x*left,y:cur.y+dir.y*left}; pts.push(cur); walked+=left; break; }
+      cur={x:cur.x+dir.x*s,y:cur.y+dir.y*s}; pts.push(cur); walked+=s; left-=s;
+      if(wall==="y"&&inDoor(cur.x)){ out=true; outAt=walked; continue; }   // sale por la puerta
+      wallAt.push(walked);
+      if(wall==="x") dir.x=-dir.x; else dir.y=-dir.y;
+      left*=.7;   // el cristal le quita fuerza
+    }
+    return {pts,wallAt,out,outAt,total:walked};
+  }
 
-  function pointTo(w){
+  // ---- Jugadores: van por una ruta (para salir y entrar por la puerta); con hora de llegada si van a golpear ----
+  function goTo(i,x,y,dl,via){ const p=P[i], [a,b]=half(team(i)), inside=!via;
+    p.route=[...(via||[]),{x:inside?clamp(x,a,b):x,y:inside?clamp(y,.4,9.6):y}]; p.dl=dl==null?null:dl; }
+  const routeLen=(p,r)=>pathLen([p,...r]);
+  const doorOut=(i,top)=>{ const x=doorX(team(i)); return top?[{x,y:.5},{x,y:-.6}]:[{x,y:9.5},{x,y:10.6}]; };
+  const doorIn=(i,top)=>doorOut(i,top).reverse();
+  const isOut=p=>p.y<-.05||p.y>10.05;
+
+  function stepPlayers(dt){
+    for(const p of P){ if(!p.route.length){ p.dl=null; continue; }
+      const rem=routeLen(p,p.route);
+      let step=p.dl!=null?(p.dl-T>dt?rem*dt/(p.dl-T):rem):VMAX*dt/1000;
+      while(step>1e-9&&p.route.length){ const q=p.route[0], dd=dist(p,q);
+        if(dd<=step){ p.x=q.x; p.y=q.y; step-=dd; p.route.shift(); } else { p.x+=(q.x-p.x)/dd*step; p.y+=(q.y-p.y)/dd*step; step=0; } }
+      if(!p.route.length) p.dl=null; }
+  }
+
+  // ---- Puntos ----
+  function pointTo(w,label){
     sc[w]++;
     const won=(sc[0]>=4||sc[1]>=4)&&Math.abs(sc[0]-sc[1])>=2;
     if(!won&&sc[0]>=3&&sc[1]>=3&&sc[0]===sc[1]){ sc[0]=sc[1]=3; }   // iguales
-    showScore(won?w:undefined);
-    if(won) queue.push(wait(bp,0,1800,()=>{ sc[0]=sc[1]=0; server=1-server; showScore(); startPoint(); }));
-    else queue.push(wait(bp,0,1100,startPoint));
+    const after=()=>{ showScore(won?w:undefined);
+      if(won) queue.push(hold(bp,0,1800,()=>{ sc[0]=sc[1]=0; server=1-server; showScore(); startPoint(); }));
+      else queue.push(hold(bp,0,1000,startPoint)); };
+    if(label){ showLabel(label); queue.push(hold(bp,0,1400,after)); } else after();
   }
 
-  // Saque: se saca desde el fondo, en diagonal, alternando lado en cada punto
+  // Saque: desde el fondo, en diagonal, alternando lado en cada punto. Quien resta y su compañero, al fondo
   function startPoint(){
     const s=server, r=1-s, sdir=s?-1:1, even=(sc[0]+sc[1])%2===0;
-    const sy=even?7.2:2.8, ry=10-sy, half=y=>y>5?1:0;
-    const si=s*2+half(sy), spi=s*2+1-half(sy), ri=r*2+half(ry), rpi=r*2+1-half(ry);
-    const T1=tNow+1000;
-    goTo(si,s?19.3:.7,sy,T1); goTo(spi,10-sdir*3,ry,T1);
-    goTo(ri,r?18.7:1.3,ry,T1); goTo(rpi,r?18.5:1.5,sy,T1);   // el compañero del que resta, a su altura
+    const sy=even?7.2:2.8, ry=10-sy, hf=y=>y>5?1:0;
+    const si=s*2+hf(sy), spi=s*2+1-hf(sy), ri=r*2+hf(ry), rpi=r*2+1-hf(ry), T1=tNow+1100;
+    const back=(i,x,y)=>goTo(i,x,y,T1,isOut(P[i])?doorIn(i,P[i].y<0):null);
+    back(si,s?19.3:.7,sy); back(spi,10-sdir*3,ry); back(ri,r?18.7:1.3,ry); back(rpi,r?18.5:1.5,sy);
     const S={x:(s?19.3:.7)+sdir*.3,y:sy};
     bp={x:S.x,y:S.y,z:5};
-    queue.push(wait(S,5,1000), fl(S,S,5,0,0,1), fl(S,S,0,5,0,1,()=>shoot(si,S,"saque")));
+    queue.push(hold(S,5,1100), fly([S,S],5,0,0,1), fly([S,S],0,5,0,1,()=>shoot(si,S,"saque")));
   }
 
-  // Qué golpe da un jugador según dónde le llega la bola
-  function choose(C,fromWall){
-    const dn=Math.abs(C.x-10);
-    if(dn<4) return pick({normal:70,dejada:18,globo:12});
-    if(fromWall) return pick({normal:55,globo:40,dejada:5});
-    return pick({normal:62,globo:28,dejada:10});
-  }
+  // Golpes: velocidad V (m/s), altura del vuelo H, distancia a la red del bote dn, recorrido tras el bote len,
+  // altura del bote bh, probabilidad de error y de golpe ganador, y el cartel si es ganador
+  const SHOT={
+    saque:   {V:11,H:9, dn:[3.5,6.3],len:[5,8],    bh:7, err:.04,win:.05,lbl:"¡ACE!"},
+    normal:  {V:15,H:12,dn:[4.5,8.8],len:[5,9],    bh:8, err:.05,win:.05},
+    chiquita:{V:9, H:5, dn:[1.6,3.4],len:[3,5],    bh:4, err:.07,win:.1},
+    globo:   {V:8, H:38,dn:[7.2,9.3],len:[6,10],   bh:18,err:.04,win:.05,lbl:"¡GLOBAZO!"},
+    dejada:  {V:8, H:10,dn:[.8,2.2], len:[1.2,2.5],bh:4, err:.12,win:.3, lbl:"¡DEJADA!"},
+    volea:   {V:16,H:6, dn:[4,8.5],  len:[5,8],    bh:7, err:.06,win:.14},
+    bandeja: {V:14,H:9, dn:[6.5,9],  len:[5,7],    bh:6, err:.05,win:.05},
+    vibora:  {V:19,H:6, dn:[5.5,8.5],len:[5,8],    bh:5, err:.08,win:.22,lbl:"¡VÍBORA!"},
+    remate:  {V:24,H:3, dn:[5,8.5],  len:[8,12],   bh:20,err:.08,win:.28},
+    rescate: {V:12,H:28,dn:[3,8],    len:[5,8],    bh:8, err:.15,win:.06},
+  };
+  const nextAfter=(C,mode)=>mode==="pared"||mode==="doble"?pick({normal:45,globo:35,chiquita:15,dejada:5})
+    :Math.abs(C.x-10)<4?pick({normal:45,dejada:20,globo:15,chiquita:20}):pick({normal:50,globo:25,chiquita:20,dejada:5});
 
-  function shoot(i,F,type,zF){
-    zF=zF==null?5:zF;
-    const t=team(i), o=1-t, dir=t?-1:1;
-    const V={saque:11,normal:15,globo:8,dejada:9,remate:24}[type], H={saque:9,normal:13,globo:36,dejada:11,remate:3}[type];
-    const dn={saque:rnd(3.5,6.3),normal:rnd(4.5,8.8),globo:rnd(7.2,9.2),dejada:rnd(.8,2.2),remate:rnd(5,8.5)}[type];
-    const L={x:10+dir*dn,y:type==="saque"?(F.y>5?rnd(1,4.2):rnd(5.8,9)):rnd(.9,9.1)};
-    const len=dist(F,L), d={x:(L.x-F.x)/len,y:(L.y-F.y)/len};
+  function shoot(i,F,type,zF,opt){
+    opt=opt||{}; zF=zF==null?5:zF; snd("hit");
+    const t=team(i), o=1-t, dir=t?-1:1, [oa,ob]=half(o);
+    // Punto espectacular pedido al tocar la pista
+    if(wow&&type!=="saque"&&type!=="rescate"&&!opt.win&&!opt.exit&&!opt.forceReply){ wow=false;
+      const w=pick({por3:24,por4:18,rescate:22,vibora:16,dejada:20});
+      if(w==="dejada"){ type="dejada"; opt={win:true}; }
+      else if(w==="vibora"){ type="globo"; opt={shortLob:true,forceReply:{type:"vibora",opt:{win:true}}}; }
+      else { type="globo"; opt={shortLob:true,forceReply:{type:"remate",opt:{exit:w==="por4"?"por4":"por3",rescue:w==="rescate"?"win":"no"}}}; }
+    }
+    const S=SHOT[type];
+    const dn=opt.shortLob?rnd(5,6.5):R(S.dn);
+    const L={x:10+dir*dn,y:type==="saque"?(F.y>5?rnd(1,4.2):rnd(5.8,9)):type==="vibora"?(Math.random()<.5?rnd(.7,2):rnd(8,9.3)):rnd(.9,9.1)};
+    const l0=dist(F,L), d={x:(L.x-F.x)/l0,y:(L.y-F.y)/l0};
 
-    // La pareja que golpea se coloca: a la red tras un globo o si ya está cerca; si no, más atrás
-    const toNet=type==="globo"||type==="remate"||Math.abs(F.x-10)<4;
-    const dnPos=toNet?rnd(2.5,3.5):rnd(6,7.5);
-    if(type!=="saque") [t*2,t*2+1].forEach(k=>goTo(k,10-dir*dnPos,(k%2?7.2:2.8)+rnd(-.6,.6)));
+    // La pareja que golpea se coloca: a la red tras un globo o un golpe de ataque; si no, atrás.
+    // Si alguien está fuera de la pista, vuelve a entrar por la puerta
+    if(type!=="saque"){ const net=["globo","volea","remate","bandeja","vibora","chiquita"].includes(type)||Math.abs(F.x-10)<4;
+      const dnp=net?rnd(2.5,3.5):rnd(6,7.5);
+      [t*2,t*2+1].forEach(k=>{ const p=k===i?F:P[k];
+        goTo(k,10-dir*dnp,(k%2?7.2:2.8)+rnd(-.6,.6),null,isOut(p)?doorIn(k,p.y<0):null); }); }
 
-    // Error: la bola se queda en la red
-    if(Math.random()<{saque:.04,normal:.05,globo:.03,dejada:.12,remate:.08}[type]){
-      const u=(10-dir*.15-F.x)/(L.x-F.x), N={x:10-dir*.15,y:F.y+(L.y-F.y)*u};
-      queue.push(fl(F,N,zF,3,H*.5,V), fl(N,{x:N.x-dir*.4,y:N.y},3,0,1,2,()=>pointTo(o)));
+    // Error: a la red, o un globo largo que da en el cristal sin botar
+    if(!opt.win&&!opt.exit&&!opt.forceReply&&Math.random()<S.err){
+      if(type==="globo"&&Math.random()<.5){ const B={x:dir>0?20:0,y:L.y};
+        queue.push(fly([F,B],zF,10,S.H,S.V,()=>snd("wall")), fly([B,{x:B.x-dir*1.3,y:B.y}],10,0,2,4), hold({x:B.x-dir*1.3,y:B.y},0,150,()=>pointTo(o)));
+      } else { const u=(10-dir*.15-F.x)/(L.x-F.x), N={x:10-dir*.15,y:F.y+(L.y-F.y)*u};
+        queue.push(fly([F,N],zF,3,S.H*.5,S.V), fly([N,{x:N.x-dir*.4,y:N.y}],3,0,1,2,()=>pointTo(o))); }
       return;
     }
 
-    // Distancia desde el bote hasta la pared del fondo o la lateral
-    const sBack=Math.abs((dir>0?20:0)-L.x)/Math.max(1e-6,Math.abs(d.x));
-    const sSide=d.y>0?(10-L.y)/d.y:d.y<0?L.y/-d.y:1e9, sWall=Math.min(sBack,sSide);
+    // Remate que sale por 3 (por encima del lateral) o por 4 (por encima del fondo)
+    if(type==="remate"&&!opt.win&&(opt.exit||Math.random()<.2)) return porShot(i,F,L,zF,opt.exit||(Math.random()<.7?"por3":"por4"),opt);
+
     const recv=y=>o*2+(y<5?0:1);
-    let mode;
-    if(type==="globo") mode=Math.random()<.45?"remate":"pared";
-    else if(type!=="saque"&&type!=="dejada"&&Math.abs(P[recv(L.y)].x-10)<4.5&&Math.random()<.45) mode="volea";
-    else mode=sWall<2.2?"pared":(sWall>6||Math.random()<.7)?"bote":"pared";
+    const tr=trace(L,d,R(S.len));
+    // Golpe ganador: el rival corre, pero la bola bota dos veces (o se va por la puerta)
+    const winner=lbl=>{ const ri=recv(L.y), rp=P[ri], E=tr.pts[tr.pts.length-1];
+      goTo(ri,rp.x+(L.x-rp.x)*.6,rp.y+(L.y-rp.y)*.6);
+      queue.push(fly([F,L],zF,0,S.H,S.V,()=>snd("bounce")), fly(tr.pts,0,0,S.bh,S.V*.55,()=>snd("bounce"),tr.wallAt),
+        hold(E,0,180,()=>pointTo(t,lbl===undefined?S.lbl:lbl))); };
+    if(opt.win) return winner(opt.label);
+    if(Math.random()<S.win) return winner();
 
-    // Tramos hasta el golpe del rival en C
-    let segs, C, nextZ=5;
-    if(mode==="volea"||mode==="remate"){   // la coge en el aire, antes de botar
-      const dnC=mode==="remate"?rnd(4.5,6.5):rnd(1.8,3.2);
+    // En el aire: volea en la red, o bandeja / víbora / remate a un globo
+    const forced=opt.forceReply, ri0=recv(L.y), nearNet=Math.abs(P[ri0].x-10)<4.5;
+    const air=forced?true:type==="globo"?Math.random()<.65:(type!=="saque"&&type!=="dejada"&&type!=="rescate"&&nearNet&&Math.random()<.5);
+    if(air){
+      const over=type==="globo", dnC=over?rnd(4.8,6.8):rnd(1.8,3.2);
       const u=clamp((10+dir*dnC-F.x)/(L.x-F.x),.35,.95);
-      C={x:F.x+(L.x-F.x)*u,y:F.y+(L.y-F.y)*u}; nextZ=mode==="remate"?22:6;
-      segs=[fl(F,C,zF,nextZ,H*u*.8,V)];
-    } else {
-      segs=[fl(F,L,zF,0,H,V)];
-      if(mode==="bote"){ C=along(L,d,clamp(rnd(1.5,3),.5,sWall-.7)); segs.push(fl(L,C,0,5,6,V*.6)); }
-      else {   // bota y rebota en el cristal (fondo o lateral) antes del golpe
-        const W=along(L,d,sWall), r=sBack<=sSide?{x:-d.x,y:d.y}:{x:d.x,y:-d.y};
-        C=along(W,r,rnd(1.2,2.4)); segs.push(flw(L,W,C,0,5,9,Math.max(5,V*.55)));
-      }
+      const C={x:F.x+(L.x-F.x)*u,y:F.y+(L.y-F.y)*u}, zC=over?22:type==="chiquita"?2:6;
+      const s1=fly([F,C],zF,zC,S.H*u*.8,S.V), ri=recv(C.y);
+      goTo(ri,C.x,C.y,tNow+s1.d); goTo(o*2+1-(ri%2),C.x,ri%2?2.8:7.2);
+      const nt=forced?forced.type:over?pick({bandeja:35,vibora:25,remate:30,volea:10}):pick({volea:65,dejada:20,globo:15});
+      s1.end=()=>shoot(ri,C,nt,zC,forced?forced.opt:undefined);
+      queue.push(s1); return;
     }
-    C.x=dir>0?clamp(C.x,10.6,19.5):clamp(C.x,.5,9.4); C.y=clamp(C.y,.5,9.5);
-    const last=segs[segs.length-1], oldLen=segLen(last);
-    last.b={x:C.x,y:C.y};
-    if(oldLen>.01) last.d=Math.max(180,segLen(last)/(oldLen/last.d));   // misma velocidad hasta el nuevo punto
-    const tC=segs.reduce((a,s)=>a+s.d,0);
 
-    const ri=recv(C.y), rp=P[ri];
-    const need=dist(rp,C)/(tC/1000);
-    // Punto ganador: no llega (demasiado lejos) o golpe que no se puede devolver
-    if(need>7.5||Math.random()<{saque:.06,normal:.07,globo:.04,dejada:.3,remate:.45}[type]){
-      const E=along(L,d,Math.max(.3,Math.min(rnd(2,3.5),sWall-.2)));
-      goTo(ri,rp.x+(C.x-rp.x)*.6,rp.y+(C.y-rp.y)*.6);   // corre, pero no llega
-      queue.push(fl(F,L,zF,0,H,V), fl(L,E,0,0,type==="dejada"?3:6,V*.6), wait(E,0,150,()=>pointTo(t)));
-      return;
+    // Con bote: tras botar, de golpe, tras el cristal (salida de pared), tras dos paredes, o fuera por la puerta
+    const w1=tr.wallAt[0], w2=tr.wallAt[1], lim=tr.out?tr.outAt-.3:tr.total-.2, cand={};
+    if((w1===undefined||w1>2.2)&&lim>1.4) cand.bote=[60,rnd(1.2,Math.min(3,(w1===undefined?lim:w1-.6),lim))];
+    if(w1!==undefined&&lim>w1+1) cand.pared=[30,w1+rnd(.8,Math.min(2.2,lim-w1))];
+    if(w2!==undefined&&lim>w2+.8) cand.doble=[12,w2+rnd(.6,Math.min(1.6,lim-w2))];
+    if(tr.out&&tr.total>tr.outAt+1.2) cand.fuera=[45,tr.outAt+rnd(.8,Math.min(2,tr.total-tr.outAt-.2))];
+    const modes=Object.keys(cand); if(!modes.length) return winner();
+    const mode=pick(Object.fromEntries(modes.map(k=>[k,cand[k][0]]))), s=cand[mode][1];
+    const C=posOn(tr.pts,s);
+    if(mode!=="fuera"&&(dir>0?C.x<10.3:C.x>9.7)) return winner();   // vuelve a su campo tras el cristal: punto
+    const s1=fly([F,L],zF,0,S.H,S.V,()=>snd("bounce")), s2=fly(cut(tr.pts,s),0,5,S.bh,S.V*.55,null,tr.wallAt.filter(w=>w<s));
+    const tC=s1.d+s2.d, top=C.y<5, ri=mode==="fuera"?o*2+(top?0:1):recv(C.y), via=mode==="fuera"?doorOut(ri,top):null;
+    if(routeLen(P[ri],[...(via||[]),C])/(tC/1000)>8.5) return winner(mode==="fuera"?"¡POR LA PUERTA!":undefined);   // no llega
+    goTo(ri,C.x,C.y,tNow+tC,via);
+    goTo(o*2+1-(ri%2),mode==="fuera"?10+dir*6:clamp(C.x,oa,ob),ri%2?2.8:7.2);
+    s2.end=()=>shoot(ri,C,mode==="fuera"?"rescate":nextAfter(C,mode),5);
+    queue.push(s1,s2);
+  }
+
+  // Remate por 3 o por 4: bota y sale por encima de la pared. Por 3 se puede salir a buscarla por la puerta
+  function porShot(i,F,L,zF,exit,opt){
+    const t=team(i), o=1-t, dir=t?-1:1, S=SHOT.remate, [oa,ob]=half(o), top=L.y<5;
+    let O,O2;
+    if(exit==="por3"){ O={x:clamp(L.x+dir*rnd(.5,2),oa,ob),y:top?-rnd(1,1.7):10+rnd(1,1.7)}; O2={x:clamp(O.x+dir*rnd(.4,1),oa-.5,ob+.5),y:top?O.y-rnd(.2,.5):O.y+rnd(.2,.5)}; }
+    else { O={x:dir>0?20+rnd(.8,1.5):-rnd(.8,1.5),y:clamp(L.y+rnd(-2,2),1,9)}; O2={x:O.x+dir*.3,y:O.y}; }
+    const s1=fly([F,L],zF,0,S.H,S.V,()=>snd("bounce")), s2=fly([L,O],0,0,46,S.V*.5,()=>snd("bounce"));
+    const label=exit==="por3"?"¡POR 3!":"¡POR 4!", ri=o*2+(top?0:1);
+    if(exit==="por3"&&opt.rescue!=="no"){
+      const s3=fly([O,O2],0,4,7,4), tC=s1.d+s2.d+s3.d, via=doorOut(ri,top);
+      const can=routeLen(P[ri],[...via,O2])/(tC/1000)<9;
+      if(opt.rescue==="win"||(can&&Math.random()<.5)){
+        goTo(ri,O2.x,O2.y,tNow+tC,via); goTo(o*2+1-(ri%2),10+dir*6,top?7.2:2.8);
+        s3.end=()=>shoot(ri,O2,"rescate",4,opt.rescue==="win"?{win:true,label:"¡DESDE FUERA!"}:undefined);
+        queue.push(s1,s2,s3); return;
+      }
+      goTo(ri,doorX(o),top?.6:9.4);   // va hacia la puerta, pero no llega
     }
-    goTo(ri,C.x,C.y,tNow+tC);
-    goTo(o*2+1-(ri%2),clamp(C.x+dir*rnd(-1,1),0,20),ri%2?2.8:7.2);   // el compañero se pone a su altura
-    const fromWall=mode==="pared", next=mode==="remate"?"remate":null;
-    last.end=()=>shoot(ri,C,next||choose(C,fromWall),nextZ);
-    queue.push(...segs);
+    queue.push(s1,s2,fly([O,O2],0,0,5,3),hold(O2,0,150,()=>pointTo(t,label)));
   }
 
   function stepBall(){
     if(!seg&&queue.length){ seg=queue.shift(); seg.t0=T; }
     while(seg&&T>=seg.t0+seg.d){
-      const s=seg; tNow=s.t0+s.d; seg=null; bp={x:s.b.x,y:s.b.y,z:s.zb};
+      const s=seg; tNow=s.t0+s.d; seg=null; bp={...s.pts[s.pts.length-1],z:s.zb};
+      while(s.wk<s.wallAt.length){ s.wk++; snd("wall"); }
       if(s.end) s.end();
       if(queue.length){ seg=queue.shift(); seg.t0=tNow; }
     }
-    if(seg){ const t=(T-seg.t0)/seg.d, z=seg.za+(seg.zb-seg.za)*t+Math.sin(Math.PI*t)*seg.h;
-      let a=seg.a, b=seg.b, u=t;
-      if(seg.m){ const l1=dist(seg.a,seg.m), s=t*(l1+dist(seg.m,seg.b));   // velocidad constante antes y después de la pared
-        if(s<l1){ b=seg.m; u=l1?s/l1:1; } else { a=seg.m; const l2=dist(seg.m,seg.b); u=l2?(s-l1)/l2:1; } }
-      bp={x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z}; }
-  }
-  function stepPlayers(dt){
-    for(const p of P){ const dx=p.tx-p.x, dy=p.ty-p.y, dd=Math.hypot(dx,dy); if(dd<1e-3){ p.dl=null; continue; }
-      if(p.dl!=null){ const rem=p.dl-T; if(rem<=dt){ p.x=p.tx; p.y=p.ty; p.dl=null; } else { p.x+=dx*dt/rem; p.y+=dy*dt/rem; } }
-      else { const st=VMAX*dt/1000; if(st>=dd){ p.x=p.tx; p.y=p.ty; } else { p.x+=dx/dd*st; p.y+=dy/dd*st; } } }
+    if(seg){ const t=(T-seg.t0)/seg.d, len=pathLen(seg.pts), s=t*len;
+      while(seg.wk<seg.wallAt.length&&s>=seg.wallAt[seg.wk]){ seg.wk++; snd("wall"); }
+      bp={...posOn(seg.pts,s),z:seg.za+(seg.zb-seg.za)*t+Math.sin(Math.PI*t)*seg.h}; }
   }
   let lastNow=null;
   function frame(now){
     requestAnimationFrame(frame);
-    if(!box.offsetWidth||document.hidden){ lastNow=null; return; }   // cabecera oculta (Palabreja) o pestaña en segundo plano
+    if(!box.offsetWidth||document.hidden){ lastNow=null; return; }   // pista minimizada, Palabreja o pestaña en segundo plano
     const dt=lastNow===null?16:Math.min(50,now-lastNow); lastNow=now; T+=dt;
     stepBall(); stepPlayers(dt); draw();
   }
