@@ -481,11 +481,16 @@ function renderTable(weeks){
 // ===== Estadísticas: todo sale de los sets y juegos de cada partido =====
 let statP=0; try{ statP=Number(localStorage.getItem("liguilla-statp"))||0; }catch(e){}
 
+// Partidos de liga y amistosos, en orden de fecha. En los amistosos los invitados quedan como null
+// (no tienen estadísticas propias, pero el partido cuenta para los de la peña que lo jugaron).
 function playedMatches(weeks){
-  const out=[];
+  const out=[], clean=sets=>sets.filter(s=>s&&s.length===2&&Number(s[0])!==Number(s[1])).map(s=>s.map(Number));
   for(const w of weeks) for(const m of w.matches){ const r=results[m.id]; const e=r&&evalSets(r.sets);
-    if(e) out.push({w,m,e,sets:r.sets.filter(s=>s&&s.length===2&&Number(s[0])!==Number(s[1])).map(s=>s.map(Number))}); }
-  return out;
+    if(e) out.push({w,m,e,date:iso(w.date),sets:clean(r.sets)}); }
+  const num=v=>amiIsGuest(v)?null:Number(v.slice(1));
+  for(const x of amistosos){ const e=evalSets(x.sets);
+    if(e) out.push({ami:x,m:{a:x.a.map(num),b:x.b.map(num)},e,date:x.date,sets:clean(x.sets)}); }
+  return out.sort((p,q)=>p.date.localeCompare(q.date));
 }
 
 function playerStats(list){
@@ -494,7 +499,7 @@ function playerStats(list){
     const t=m[side], o=m[side==="a"?"b":"a"], won=e.winner===side, me=side==="a"?0:1;
     const sf=me?e.sb:e.sa, sc=me?e.sa:e.sb, jf=me?e.gb:e.ga, jc=me?e.ga:e.gb;
     const firstWon=sets[0][me]>sets[0][1-me];
-    t.forEach((p,k)=>{ const s=ps[p];
+    t.forEach((p,k)=>{ if(p===null) return; const s=ps[p];
       s.pj++; if(won) s.pg++; s.sf+=sf; s.sc+=sc; s.jf+=jf; s.jc+=jc;
       if(sets.length===3) won?s.three.w++:s.three.l++;
       if(won&&!firstWon) s.comeback++;
@@ -504,7 +509,7 @@ function playerStats(list){
         if(a===6&&b===0) s.rosco.d++;
         if(a===0&&b===6) s.rosco.r++; }
       s.run.push(won);
-      const add=(map,q)=>{ const x=map[q]||(map[q]={pj:0,pg:0,jd:0}); x.pj++; if(won) x.pg++; x.jd+=jf-jc; };
+      const add=(map,q)=>{ if(q===null) return; const x=map[q]||(map[q]={pj:0,pg:0,jd:0}); x.pj++; if(won) x.pg++; x.jd+=jf-jc; };
       add(s.mate,t[1-k]); o.forEach(q=>add(s.riv,q));
     });
   }
@@ -546,7 +551,9 @@ function bumpChart(hist,sel){
 function renderStats(weeks){
   const list=playedMatches(weeks);
   let html='<h2>Estadísticas</h2>';
-  if(!list.length) return html+'<p class="note">Aún no hay partidos jugados. Las estadísticas aparecen en cuanto se apunte el primer resultado en Jornadas.</p>';
+  if(!list.length) return html+'<p class="note">Aún no hay partidos jugados. Las estadísticas aparecen en cuanto se apunte el primer resultado en Jornadas o Amistosos.</p>';
+  const nAmi=list.filter(x=>x.ami).length;
+  if(nAmi) html+=`<p class="note">Incluye ${nAmi} amistoso${nAmi>1?"s":""}. La clasificación solo cuenta los partidos de liga.</p>`;
   const ps=playerStats(list), s=ps[statP]||ps[0], hist=rankHistory(weeks);
   const pct=(a,b)=>b?Math.round(100*a/b)+"%":"—", sg=n=>(n>0?"+":"")+n, wl=x=>x.w+"-"+x.l;
   const opts=[...Array(8).keys()].map(i=>`<option value="${i}"${i===s.i?" selected":""}>${esc(pname(i))}</option>`).join("");
@@ -571,10 +578,11 @@ function renderStats(weeks){
   <p class="note">Partidos ganados-perdidos y, debajo, diferencia de juegos.</p>`
   :'<p class="note">'+esc(pname(s.i))+' aún no ha jugado ningún partido.</p>';
 
-  html+=`<h3 class="sh">Clasificación jornada a jornada</h3><p class="note">Toca una línea o un nombre para resaltar a ese jugador.</p>
+  if(hist.length) html+=`<h3 class="sh">Clasificación jornada a jornada</h3><p class="note">Solo partidos de liga. Toca una línea o un nombre para resaltar a ese jugador.</p>
   <div class="card chart">${bumpChart(hist,s.i)}<div class="tip" id="tip" hidden></div></div>`;
 
-  const desc=x=>`J${x.w.n} · ${esc(tname(x.m.a))} ${x.sets.map(t=>t.join("-")).join(" / ")} ${esc(tname(x.m.b))}`;
+  const desc=x=>(x.ami?"Amistoso · "+esc(x.ami.a.map(amiName).join(" y ")):`J${x.w.n} · ${esc(tname(x.m.a))}`)
+    +` ${x.sets.map(t=>t.join("-")).join(" / ")} `+esc(x.ami?x.ami.b.map(amiName).join(" y "):tname(x.m.b));
   const diff=x=>Math.abs(x.e.ga-x.e.gb), games=x=>x.e.ga+x.e.gb;
   const by=f=>list.reduce((a,b)=>f(b)>f(a)?b:a);
   const top=(f,u)=>{ const mx=Math.max(...ps.map(f)); return mx>0?ps.filter(p=>f(p)===mx).map(p=>esc(pname(p.i))).join(", ")+" ("+mx+u+")":"—"; };
@@ -653,7 +661,7 @@ function renderAmiForm(d){
 function renderAmistosos(){
   const edit=canWrite!==false&&!readOnly&&db;
   let html=`<div class="row" style="justify-content:space-between"><h2>Amistosos</h2>${edit&&!amiDraft?'<button class="primary" data-aminew="1">Nuevo amistoso</button>':""}</div>
-  <p class="note">Partidos fuera de la liga, por ejemplo cuando falta alguien. Pueden jugar invitados y no cuentan para la clasificación ni para las estadísticas.</p>`;
+  <p class="note">Partidos fuera de la liga, por ejemplo cuando falta alguien. Pueden jugar invitados. Cuentan para las estadísticas de los jugadores de la peña, pero no para la clasificación.</p>`;
   if(amiLoadErr) html+='<p class="status">No se pueden cargar los amistosos. Revisa que las reglas de Firestore estén actualizadas.</p>';
   if(amiDraft&&!amiDraft.id) html+=renderAmiForm(amiDraft);
   if(!amistosos.length&&!amiDraft&&!amiLoadErr) html+='<p class="note">Aún no hay amistosos.</p>';
