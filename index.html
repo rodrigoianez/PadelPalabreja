@@ -44,9 +44,13 @@ header.band .court{position:absolute;inset:0;width:100%;height:100%;pointer-even
 .court .mesh{stroke:rgba(255,255,255,.3);stroke-width:6;stroke-dasharray:2 4}
 .court .net-sh{stroke:rgba(0,0,0,.22);stroke-width:12}
 .court .net{stroke:rgba(255,255,255,.9);stroke-width:4}
-header .wrap{padding-block:34px 0;position:relative;z-index:1}
-header.band h1{text-shadow:0 2px 12px rgba(0,0,0,.3)}
-header.band nav.tabs{margin-top:30px}
+header .wrap{padding-block:0;position:relative;z-index:1}
+header.band nav.tabs{margin-top:8px}
+.courtbox{position:relative;height:clamp(120px,24vw,190px)}
+.ball,.ball-sh{position:absolute;left:0;top:0;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;will-change:transform;transform:translate(-50px,-50px)}
+.ball{background:var(--ball);box-shadow:inset -2px -2px 0 rgba(0,0,0,.18),0 0 6px rgba(217,229,76,.5)}
+.ball-sh{background:rgba(0,0,0,.3);filter:blur(1px)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,8vw,52px);line-height:1;margin:6px 0 14px;text-wrap:balance;text-transform:uppercase;letter-spacing:.01em}
 .next{display:inline-flex;gap:8px;align-items:center;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px}
 nav.tabs{display:flex;gap:4px;margin-top:22px}
@@ -293,18 +297,20 @@ body.mode-pj{
   <a href="#palabreja" id="sw-pj">La Palabreja</a>
 </nav></div>
 <header class="band">
-  <svg class="court" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true">
-    <!-- paredes: cristal en los fondos y en los 4 m de cada lateral, malla en el centro de los laterales -->
-    <path class="glass" d="M40 0H0V100H40M160 0H200V100H160"/>
-    <path class="mesh" d="M40 0H160M40 100H160"/>
-    <rect x="3" y="6" width="194" height="88"/>
-    <line x1="32.6" y1="6" x2="32.6" y2="94"/><line x1="167.4" y1="6" x2="167.4" y2="94"/>
-    <line x1="32.6" y1="50" x2="167.4" y2="50"/>
-    <line class="net-sh" x1="100" y1="0" x2="100" y2="100"/><line class="net" x1="100" y1="0" x2="100" y2="100"/>
-  </svg>
+  <h1 id="title" class="sr">Liguilla de los Miércoles</h1>
+  <div class="courtbox" aria-hidden="true">
+    <svg class="court" viewBox="0 0 200 100" preserveAspectRatio="none">
+      <!-- paredes: cristal en los fondos y en los 4 m de cada lateral, valla en el centro de los laterales -->
+      <path class="glass" d="M40 0H0V100H40M160 0H200V100H160"/>
+      <path class="mesh" d="M40 0H160M40 100H160"/>
+      <!-- líneas de saque (a 6,95 m de la red) y central, que forma las dos T -->
+      <line x1="30.5" y1="0" x2="30.5" y2="100"/><line x1="169.5" y1="0" x2="169.5" y2="100"/>
+      <line x1="30.5" y1="50" x2="169.5" y2="50"/>
+      <line class="net-sh" x1="100" y1="0" x2="100" y2="100"/><line class="net" x1="100" y1="0" x2="100" y2="100"/>
+    </svg>
+    <div class="ball-sh" id="ball-sh"></div><div class="ball" id="ball"></div>
+  </div>
   <div class="wrap">
-    <h1 id="title">Liguilla de los Miércoles</h1>
-    <span class="next" id="next">Cargando calendario…</span>
     <nav class="tabs" id="tabs">
       <a href="#clasificacion" data-v="clasificacion"><span class="full">Clasificación</span><span class="short">Tabla</span></a>
       <a href="#jornadas" data-v="jornadas">Jornadas</a>
@@ -493,7 +499,6 @@ function render(){
   if(pj) return;
   const weeks=schedule(); const cur=currentWeek(weeks);
   document.getElementById("title").textContent=cfg.name||DEFAULT_CFG.name;
-  document.getElementById("next").textContent=cur?("Próxima: jornada "+cur.n+" · "+fmt(cur.date)):"Liga terminada";
   const v=route();
   document.querySelectorAll("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===v?"page":"false"));
   document.getElementById("tab-ajustes").hidden=false; // el tema lo puede cambiar cualquiera; la liga solo quien puede editar
@@ -1190,6 +1195,44 @@ draw(); firstVisit();
 <script>
 // App instalable (PWA): solo funciona servida por https (GitHub Pages, Firebase Hosting…)
 if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+
+// Bola de la cabecera: peloteo de un campo a otro, vista desde arriba.
+// Cada golpe va del jugador al otro campo, bota y sube hasta el rival. La altura se ve
+// porque la bola se separa de su sombra y crece un poco. Posiciones en % de la pista.
+(()=>{
+  const box=document.querySelector(".courtbox"), ball=document.getElementById("ball"), sh=document.getElementById("ball-sh");
+  if(!box||!ball||!sh) return;
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const put=(x,y,z)=>{ const W=box.clientWidth,H=box.clientHeight, px=x/100*W, py=y/100*H;
+    sh.style.transform=`translate(${px}px,${py}px)`;
+    ball.style.transform=`translate(${px}px,${py-z}px) scale(${1+z/70})`; };
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){ put(24,40,0); return; }
+  let side=0, from={x:rnd(8,22),y:rnd(25,75)}, segs=[], t0=null;
+  function shot(){ // de "from" al otro campo
+    side=1-side;
+    const to={x:side?rnd(76,94):rnd(6,24),y:rnd(14,86)};
+    const r=Math.random();
+    const type=r<.12?"globo":r<.24?"remate":r<.34?"dejada":"normal";
+    // dónde bota: más cerca de la red en una dejada, más al fondo en un globo
+    const depth=type==="dejada"?rnd(.12,.25):type==="globo"?rnd(.65,.8):rnd(.35,.6);
+    const bx=side?50+(to.x-50)*depth+3:50-(50-to.x)*depth-3, by=from.y+(to.y-from.y)*rnd(.7,.9);
+    const h=type==="globo"?rnd(30,38):type==="remate"?rnd(4,7):type==="dejada"?rnd(9,13):rnd(13,20);
+    const d=type==="globo"?rnd(1300,1600):type==="remate"?rnd(380,480):type==="dejada"?rnd(800,1000):rnd(650,850);
+    const bounce={x:bx,y:by}, end=type==="dejada"?{x:side?bx+rnd(6,12):bx-rnd(6,12),y:by+rnd(-6,6)}:to;
+    segs.push({a:from,b:bounce,h,d},{a:bounce,b:end,h:type==="remate"?rnd(8,12):h*.35,d:d*.45});
+    from=end;
+  }
+  function frame(now){
+    requestAnimationFrame(frame);
+    if(!box.offsetWidth||document.hidden){ t0=null; return; }   // cabecera oculta (Palabreja) o pestaña en segundo plano
+    if(t0===null){ t0=now; }
+    if(!segs.length) shot();
+    while((now-t0)>=segs[0].d){ t0+=segs[0].d; segs.shift(); if(!segs.length) shot(); }
+    const s=segs[0], t=(now-t0)/s.d;
+    put(s.a.x+(s.b.x-s.a.x)*t, s.a.y+(s.b.y-s.a.y)*t, Math.sin(Math.PI*t)*s.h);
+  }
+  requestAnimationFrame(frame);
+})();
 </script>
 
 </body>
