@@ -102,7 +102,7 @@ input[type=number]{text-align:center;font-variant-numeric:tabular-nums}
 .err{color:var(--loss);font-size:13px;margin:0}
 .settings{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
 .settings+.settings{margin-top:14px}
-.seg{display:flex;background:var(--soft);border-radius:10px;padding:3px;gap:3px;max-width:360px}
+.seg{display:flex;background:var(--soft);border-radius:10px;padding:3px;gap:3px;max-width:260px}
 .seg button{flex:1;border:0;background:transparent;color:var(--muted);padding:8px 6px;border-radius:8px}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -483,7 +483,7 @@ function render(){
   document.getElementById("next").textContent=cur?("Próxima: jornada "+cur.n+" · "+fmt(cur.date)):"Liga terminada";
   const v=route();
   document.querySelectorAll("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===v?"page":"false"));
-  document.getElementById("tab-ajustes").hidden=false; // la apariencia la puede cambiar cualquiera; la liga solo quien puede editar
+  document.getElementById("tab-ajustes").hidden=false; // el tema lo puede cambiar cualquiera; la liga solo quien puede editar
   const status=!db&&loaded?'<p class="status">Los resultados no se pueden cargar aquí. Se muestra el calendario sin resultados.</p>'
     :!loaded?'<p class="status">'+(loadNote||"Cargando resultados…")+'</p>':"";
   const view=document.getElementById("view");
@@ -826,23 +826,23 @@ function renderEditor(m){
   <div class="row"><button class="primary" data-save="${m.id}">Guardar</button><button data-cancel="1">Cancelar</button>${r?`<button class="link" data-clear="${m.id}">Borrar resultado</button>`:""}</div></div>`;
 }
 
-// Tema claro/oscuro: se guarda en este dispositivo. "auto" sigue al sistema.
-let theme="auto"; try{ const t=localStorage.getItem("liguilla-theme"); if(t==="light"||t==="dark") theme=t; }catch(e){}
-function applyTheme(){ if(theme==="auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme=theme; }
+// Tema claro/oscuro: se guarda en este dispositivo. Hasta que se elija uno, se usa el del móvil.
+let theme=null; try{ const t=localStorage.getItem("liguilla-theme"); if(t==="light"||t==="dark") theme=t; }catch(e){}
+const curTheme=()=>theme||(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
 document.addEventListener("click",ev=>{
   const b=ev.target.closest&&ev.target.closest("[data-settheme]"); if(!b) return;
-  theme=b.dataset.settheme; try{ theme==="auto"?localStorage.removeItem("liguilla-theme"):localStorage.setItem("liguilla-theme",theme); }catch(e){}
-  applyTheme(); render();
+  theme=b.dataset.settheme; try{ localStorage.setItem("liguilla-theme",theme); }catch(e){}
+  document.documentElement.dataset.theme=theme; render();
 });
 
 function renderSettings(){
   const p=cfg.players||DEFAULT_CFG.players;
-  const seg=(v,t)=>`<button data-settheme="${v}" aria-pressed="${theme===v}">${t}</button>`;
-  const look=`<h2>Ajustes</h2><section class="card settings"><h3 class="sh" style="margin:0">Apariencia</h3>
-    <div class="seg" role="group" aria-label="Tema">${seg("light","Claro")}${seg("dark","Oscuro")}${seg("auto","Automático")}</div>
-    <p class="note" style="margin:0">Se guarda en este dispositivo. Automático sigue el modo del móvil.</p></section>`;
-  if(!(canWrite!==false&&!readOnly&&db)) return look;
-  return look+`<section class="card settings"><h3 class="sh" style="margin:0">Liga</h3>
+  const seg=(v,t)=>`<button data-settheme="${v}" aria-pressed="${curTheme()===v}">${t}</button>`;
+  const look=`<section class="card settings"><h3 class="sh" style="margin:0">Tema</h3>
+    <div class="seg" role="group" aria-label="Tema">${seg("light","Claro")}${seg("dark","Oscuro")}</div>
+    <p class="note" style="margin:0">Se guarda en este dispositivo.</p></section>`;
+  if(!(canWrite!==false&&!readOnly&&db)) return "<h2>Ajustes</h2>"+look;
+  return `<h2>Ajustes</h2><section class="card settings"><h3 class="sh" style="margin:0">Liga</h3>
     <label for="s-name">Nombre de la liga<input id="s-name" value="${esc(cfg.name||"")}"></label>
     <div><p class="note" style="margin-bottom:8px">Jugadores (el orden no importa: el calendario ya reparte parejas y rivales por igual)</p>
     <div class="grid2">${p.map((n,i)=>`<input id="s-p${i}" value="${esc(n)}" aria-label="Jugador ${i+1}">`).join("")}</div></div>
@@ -853,7 +853,7 @@ function renderSettings(){
     <div class="skips" style="margin-top:8px">${(cfg.skips||[]).map(s=>`<span>${fmt(new Date(s+"T12:00:00"))}<button class="link" data-rmskip="${s}" aria-label="Quitar">×</button></span>`).join("")}</div></div>
     ${editErr?`<p class="err">${esc(editErr)}</p>`:""}
     <div class="row"><button class="primary" data-savecfg="1">Guardar ajustes</button><span class="note" id="saved"></span></div>
-  </section>`;
+  </section>`+look;
 }
 
 function readCfgForm(){
