@@ -55,6 +55,9 @@ header.band nav.tabs{margin-top:8px}
 .cscore{position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:8px;background:rgba(10,15,26,.82);color:#fff;border-radius:999px;padding:2px 12px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3}
 .cscore b{min-width:2.2ch;text-align:center}
 .cscore i{width:4px;height:4px;border-radius:50%;background:var(--ball)}
+.cscore .arr{width:0;height:0;border-block:5px solid transparent}
+.cscore .arr.l{border-right:7px solid var(--ball)}
+.cscore .arr.r{border-left:7px solid var(--ball)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,8vw,52px);line-height:1;margin:6px 0 14px;text-wrap:balance;text-transform:uppercase;letter-spacing:.01em}
 .next{display:inline-flex;gap:8px;align-items:center;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px}
@@ -1230,13 +1233,17 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   // Marcador del juego: 0, 15, 30, 40, iguales y ventaja (AD)
   function showScore(won){
     const N=["0","15","30","40"], [a,b]=sc;
-    const lab=k=>won===k?"JUEGO":a>=3&&b>=3?(a===b?"40":(k===0?a>b:b>a)?"AD":"40"):N[Math.min(3,sc[k])];
+    if(won!=null){ scoreEl.innerHTML=won===0?`<span class="arr l"></span><b>JUEGO</b>`:`<b>JUEGO</b><span class="arr r"></span>`; return; }   // la flecha señala a la pareja ganadora
+    const lab=k=>a>=3&&b>=3?(a===b?"40":(k===0?a>b:b>a)?"AD":"40"):N[Math.min(3,sc[k])];
     scoreEl.innerHTML=`<b>${lab(0)}</b><i></i><b>${lab(1)}</b>`;
   }
   if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){ showScore(); draw(); return; }
 
   // Tramos de bola: de a a b, altura inicial za y final zb, con una parábola de alto h encima
   const fl=(a,b,za,zb,h,v,end)=>({a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},za,zb,h,d:Math.max(180,dist(a,b)/v*1000),end});
+  // Igual, pero pasando por la pared en m: un solo vuelo continuo en el que la pared solo cambia la dirección
+  const flw=(a,m,b,za,zb,h,v,end)=>({a:{x:a.x,y:a.y},m:{x:m.x,y:m.y},b:{x:b.x,y:b.y},za,zb,h,d:Math.max(180,(dist(a,m)+dist(m,b))/v*1000),end});
+  const segLen=s=>s.m?dist(s.a,s.m)+dist(s.m,s.b):dist(s.a,s.b);
   const wait=(p,z,ms,end)=>({a:{x:p.x,y:p.y},b:{x:p.x,y:p.y},za:z,zb:z,h:0,d:ms,end});
   function goTo(i,x,y,dl){ const t=team(i), p=P[i];
     p.tx=clamp(x,t?10.4:.4,t?19.6:9.6); p.ty=clamp(y,.4,9.6); p.dl=dl==null?null:dl; }
@@ -1257,7 +1264,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
     const si=s*2+half(sy), spi=s*2+1-half(sy), ri=r*2+half(ry), rpi=r*2+1-half(ry);
     const T1=tNow+1000;
     goTo(si,s?19.3:.7,sy,T1); goTo(spi,10-sdir*3,ry,T1);
-    goTo(ri,r?18.7:1.3,ry,T1); goTo(rpi,10+sdir*6.5,sy,T1);
+    goTo(ri,r?18.7:1.3,ry,T1); goTo(rpi,r?18.5:1.5,sy,T1);   // el compañero del que resta, a su altura
     const S={x:(s?19.3:.7)+sdir*.3,y:sy};
     bp={x:S.x,y:S.y,z:5};
     queue.push(wait(S,5,1000), fl(S,S,5,0,0,1), fl(S,S,0,5,0,1,()=>shoot(si,S,"saque")));
@@ -1312,13 +1319,13 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
       if(mode==="bote"){ C=along(L,d,clamp(rnd(1.5,3),.5,sWall-.7)); segs.push(fl(L,C,0,5,6,V*.6)); }
       else {   // bota y rebota en el cristal (fondo o lateral) antes del golpe
         const W=along(L,d,sWall), r=sBack<=sSide?{x:-d.x,y:d.y}:{x:d.x,y:-d.y};
-        C=along(W,r,rnd(1.2,2.4)); segs.push(fl(L,W,0,8,6,V*.6), fl(W,C,8,5,3,Math.max(4,V*.4)));
+        C=along(W,r,rnd(1.2,2.4)); segs.push(flw(L,W,C,0,5,9,Math.max(5,V*.55)));
       }
     }
     C.x=dir>0?clamp(C.x,10.6,19.5):clamp(C.x,.5,9.4); C.y=clamp(C.y,.5,9.5);
-    const last=segs[segs.length-1], oldLen=dist(last.a,last.b);
-    if(oldLen>.01) last.d=Math.max(180,dist(last.a,C)/(oldLen/last.d));   // misma velocidad hasta el nuevo punto
+    const last=segs[segs.length-1], oldLen=segLen(last);
     last.b={x:C.x,y:C.y};
+    if(oldLen>.01) last.d=Math.max(180,segLen(last)/(oldLen/last.d));   // misma velocidad hasta el nuevo punto
     const tC=segs.reduce((a,s)=>a+s.d,0);
 
     const ri=recv(C.y), rp=P[ri];
@@ -1344,8 +1351,11 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
       if(s.end) s.end();
       if(queue.length){ seg=queue.shift(); seg.t0=tNow; }
     }
-    if(seg){ const t=(T-seg.t0)/seg.d;
-      bp={x:seg.a.x+(seg.b.x-seg.a.x)*t,y:seg.a.y+(seg.b.y-seg.a.y)*t,z:seg.za+(seg.zb-seg.za)*t+Math.sin(Math.PI*t)*seg.h}; }
+    if(seg){ const t=(T-seg.t0)/seg.d, z=seg.za+(seg.zb-seg.za)*t+Math.sin(Math.PI*t)*seg.h;
+      let a=seg.a, b=seg.b, u=t;
+      if(seg.m){ const l1=dist(seg.a,seg.m), s=t*(l1+dist(seg.m,seg.b));   // velocidad constante antes y después de la pared
+        if(s<l1){ b=seg.m; u=l1?s/l1:1; } else { a=seg.m; const l2=dist(seg.m,seg.b); u=l2?(s-l1)/l2:1; } }
+      bp={x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z}; }
   }
   function stepPlayers(dt){
     for(const p of P){ const dx=p.tx-p.x, dy=p.ty-p.y, dd=Math.hypot(dx,dy); if(dd<1e-3){ p.dl=null; continue; }
