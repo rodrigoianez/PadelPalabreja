@@ -1,0 +1,22 @@
+{
+  "name": "Peña · Liguilla y Palabreja",
+  "short_name": "Peña",
+  "description": "Liga de pádel de los miércoles y La Palabreja.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0F1A",
+  "theme_color": "#0A0F1A",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Clasificación", "url": "./#clasificacion", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Jornadas", "url": "./#jornadas", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "La Palabreja", "url": "./#palabreja", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
