@@ -50,6 +50,11 @@ header.band nav.tabs{margin-top:8px}
 .ball,.ball-sh{position:absolute;left:0;top:0;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;will-change:transform;transform:translate(-50px,-50px)}
 .ball{background:var(--ball);box-shadow:inset -2px -2px 0 rgba(0,0,0,.18),0 0 6px rgba(217,229,76,.5)}
 .ball-sh{background:rgba(0,0,0,.3);filter:blur(1px)}
+.pl{position:absolute;left:0;top:0;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#0A0F1A;box-shadow:0 0 0 1.5px rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.35);will-change:transform;transform:translate(-50px,-50px)}
+.ball{z-index:2}.ball-sh{z-index:1}
+.cscore{position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:8px;background:rgba(10,15,26,.82);color:#fff;border-radius:999px;padding:2px 12px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3}
+.cscore b{min-width:2.2ch;text-align:center}
+.cscore i{width:4px;height:4px;border-radius:50%;background:var(--ball)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,8vw,52px);line-height:1;margin:6px 0 14px;text-wrap:balance;text-transform:uppercase;letter-spacing:.01em}
 .next{display:inline-flex;gap:8px;align-items:center;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px}
@@ -1196,41 +1201,165 @@ draw(); firstVisit();
 // App instalable (PWA): solo funciona servida por https (GitHub Pages, Firebase Hosting…)
 if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
 
-// Bola de la cabecera: peloteo de un campo a otro, vista desde arriba.
-// Cada golpe va del jugador al otro campo, bota y sube hasta el rival. La altura se ve
-// porque la bola se separa de su sombra y crece un poco. Posiciones en % de la pista.
+// ===== Partido de la cabecera: 4 jugadores, bola y marcador del juego, vistos desde arriba =====
+// La pista va en metros: x de 0 a 20 (red en x=10), y de 0 a 10. Pareja 0 a la izquierda
+// (jugadores 0 arriba y 1 abajo), pareja 1 a la derecha (2 arriba y 3 abajo); cada jugador cubre su mitad.
+// La bola recorre tramos (vuelo, bote, rebote en el cristal…) y al acabar cada tramo se decide lo siguiente.
+// La altura de la bola se ve porque se separa de su sombra y crece un poco.
 (()=>{
   const box=document.querySelector(".courtbox"), ball=document.getElementById("ball"), sh=document.getElementById("ball-sh");
   if(!box||!ball||!sh) return;
-  const rnd=(a,b)=>a+Math.random()*(b-a);
-  const put=(x,y,z)=>{ const W=box.clientWidth,H=box.clientHeight, px=x/100*W, py=y/100*H;
-    sh.style.transform=`translate(${px}px,${py}px)`;
-    ball.style.transform=`translate(${px}px,${py-z}px) scale(${1+z/70})`; };
-  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){ put(24,40,0); return; }
-  let side=0, from={x:rnd(8,22),y:rnd(25,75)}, segs=[], t0=null;
-  function shot(){ // de "from" al otro campo
-    side=1-side;
-    const to={x:side?rnd(76,94):rnd(6,24),y:rnd(14,86)};
-    const r=Math.random();
-    const type=r<.12?"globo":r<.24?"remate":r<.34?"dejada":"normal";
-    // dónde bota: más cerca de la red en una dejada, más al fondo en un globo
-    const depth=type==="dejada"?rnd(.12,.25):type==="globo"?rnd(.65,.8):rnd(.35,.6);
-    const bx=side?50+(to.x-50)*depth+3:50-(50-to.x)*depth-3, by=from.y+(to.y-from.y)*rnd(.7,.9);
-    const h=type==="globo"?rnd(30,38):type==="remate"?rnd(4,7):type==="dejada"?rnd(9,13):rnd(13,20);
-    const d=type==="globo"?rnd(1300,1600):type==="remate"?rnd(380,480):type==="dejada"?rnd(800,1000):rnd(650,850);
-    const bounce={x:bx,y:by}, end=type==="dejada"?{x:side?bx+rnd(6,12):bx-rnd(6,12),y:by+rnd(-6,6)}:to;
-    segs.push({a:from,b:bounce,h,d},{a:bounce,b:end,h:type==="remate"?rnd(8,12):h*.35,d:d*.45});
-    from=end;
+  const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const dist=(a,b)=>Math.hypot(b.x-a.x,b.y-a.y), along=(p,d,s)=>({x:p.x+d.x*s,y:p.y+d.y*s});
+  const pick=w=>{ let r=Math.random()*Object.values(w).reduce((a,b)=>a+b,0); for(const k in w){ r-=w[k]; if(r<0) return k; } return Object.keys(w)[0]; };
+  const team=i=>i<2?0:1, VMAX=4.5;
+
+  const pe=[0,1,2,3].map(()=>{ const d=document.createElement("div"); d.className="pl"; box.insertBefore(d,sh); return d; });
+  const scoreEl=document.createElement("div"); scoreEl.className="cscore"; box.appendChild(scoreEl);
+  const P=[[6,2.8],[6,7.2],[14,2.8],[14,7.2]].map(([x,y])=>({x,y,tx:x,ty:y,dl:null}));
+  let T=0, tNow=0, seg=null, bp={x:1,y:7.2,z:5};
+  const queue=[], sc=[0,0]; let server=0;
+
+  function draw(){
+    const W=box.clientWidth, H=box.clientHeight, X=x=>x/20*W, Y=y=>y/10*H, zf=Math.min(1,H/170);
+    P.forEach((p,i)=>{ pe[i].style.transform=`translate(${X(p.x)}px,${Y(p.y)}px)`; });
+    const z=bp.z*zf;
+    sh.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)}px)`;
+    ball.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)-z}px) scale(${1+z/60})`;
   }
+  // Marcador del juego: 0, 15, 30, 40, iguales y ventaja (AD)
+  function showScore(won){
+    const N=["0","15","30","40"], [a,b]=sc;
+    const lab=k=>won===k?"JUEGO":a>=3&&b>=3?(a===b?"40":(k===0?a>b:b>a)?"AD":"40"):N[Math.min(3,sc[k])];
+    scoreEl.innerHTML=`<b>${lab(0)}</b><i></i><b>${lab(1)}</b>`;
+  }
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){ showScore(); draw(); return; }
+
+  // Tramos de bola: de a a b, altura inicial za y final zb, con una parábola de alto h encima
+  const fl=(a,b,za,zb,h,v,end)=>({a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},za,zb,h,d:Math.max(180,dist(a,b)/v*1000),end});
+  const wait=(p,z,ms,end)=>({a:{x:p.x,y:p.y},b:{x:p.x,y:p.y},za:z,zb:z,h:0,d:ms,end});
+  function goTo(i,x,y,dl){ const t=team(i), p=P[i];
+    p.tx=clamp(x,t?10.4:.4,t?19.6:9.6); p.ty=clamp(y,.4,9.6); p.dl=dl==null?null:dl; }
+
+  function pointTo(w){
+    sc[w]++;
+    const won=(sc[0]>=4||sc[1]>=4)&&Math.abs(sc[0]-sc[1])>=2;
+    if(!won&&sc[0]>=3&&sc[1]>=3&&sc[0]===sc[1]){ sc[0]=sc[1]=3; }   // iguales
+    showScore(won?w:undefined);
+    if(won) queue.push(wait(bp,0,1800,()=>{ sc[0]=sc[1]=0; server=1-server; showScore(); startPoint(); }));
+    else queue.push(wait(bp,0,1100,startPoint));
+  }
+
+  // Saque: se saca desde el fondo, en diagonal, alternando lado en cada punto
+  function startPoint(){
+    const s=server, r=1-s, sdir=s?-1:1, even=(sc[0]+sc[1])%2===0;
+    const sy=even?7.2:2.8, ry=10-sy, half=y=>y>5?1:0;
+    const si=s*2+half(sy), spi=s*2+1-half(sy), ri=r*2+half(ry), rpi=r*2+1-half(ry);
+    const T1=tNow+1000;
+    goTo(si,s?19.3:.7,sy,T1); goTo(spi,10-sdir*3,ry,T1);
+    goTo(ri,r?18.7:1.3,ry,T1); goTo(rpi,10+sdir*6.5,sy,T1);
+    const S={x:(s?19.3:.7)+sdir*.3,y:sy};
+    bp={x:S.x,y:S.y,z:5};
+    queue.push(wait(S,5,1000), fl(S,S,5,0,0,1), fl(S,S,0,5,0,1,()=>shoot(si,S,"saque")));
+  }
+
+  // Qué golpe da un jugador según dónde le llega la bola
+  function choose(C,fromWall){
+    const dn=Math.abs(C.x-10);
+    if(dn<4) return pick({normal:70,dejada:18,globo:12});
+    if(fromWall) return pick({normal:55,globo:40,dejada:5});
+    return pick({normal:62,globo:28,dejada:10});
+  }
+
+  function shoot(i,F,type,zF){
+    zF=zF==null?5:zF;
+    const t=team(i), o=1-t, dir=t?-1:1;
+    const V={saque:11,normal:15,globo:8,dejada:9,remate:24}[type], H={saque:9,normal:13,globo:36,dejada:11,remate:3}[type];
+    const dn={saque:rnd(3.5,6.3),normal:rnd(4.5,8.8),globo:rnd(7.2,9.2),dejada:rnd(.8,2.2),remate:rnd(5,8.5)}[type];
+    const L={x:10+dir*dn,y:type==="saque"?(F.y>5?rnd(1,4.2):rnd(5.8,9)):rnd(.9,9.1)};
+    const len=dist(F,L), d={x:(L.x-F.x)/len,y:(L.y-F.y)/len};
+
+    // La pareja que golpea se coloca: a la red tras un globo o si ya está cerca; si no, más atrás
+    const toNet=type==="globo"||type==="remate"||Math.abs(F.x-10)<4;
+    const dnPos=toNet?rnd(2.5,3.5):rnd(6,7.5);
+    if(type!=="saque") [t*2,t*2+1].forEach(k=>goTo(k,10-dir*dnPos,(k%2?7.2:2.8)+rnd(-.6,.6)));
+
+    // Error: la bola se queda en la red
+    if(Math.random()<{saque:.04,normal:.05,globo:.03,dejada:.12,remate:.08}[type]){
+      const u=(10-dir*.15-F.x)/(L.x-F.x), N={x:10-dir*.15,y:F.y+(L.y-F.y)*u};
+      queue.push(fl(F,N,zF,3,H*.5,V), fl(N,{x:N.x-dir*.4,y:N.y},3,0,1,2,()=>pointTo(o)));
+      return;
+    }
+
+    // Distancia desde el bote hasta la pared del fondo o la lateral
+    const sBack=Math.abs((dir>0?20:0)-L.x)/Math.max(1e-6,Math.abs(d.x));
+    const sSide=d.y>0?(10-L.y)/d.y:d.y<0?L.y/-d.y:1e9, sWall=Math.min(sBack,sSide);
+    const recv=y=>o*2+(y<5?0:1);
+    let mode;
+    if(type==="globo") mode=Math.random()<.45?"remate":"pared";
+    else if(type!=="saque"&&type!=="dejada"&&Math.abs(P[recv(L.y)].x-10)<4.5&&Math.random()<.45) mode="volea";
+    else mode=sWall<2.2?"pared":(sWall>6||Math.random()<.7)?"bote":"pared";
+
+    // Tramos hasta el golpe del rival en C
+    let segs, C, nextZ=5;
+    if(mode==="volea"||mode==="remate"){   // la coge en el aire, antes de botar
+      const dnC=mode==="remate"?rnd(4.5,6.5):rnd(1.8,3.2);
+      const u=clamp((10+dir*dnC-F.x)/(L.x-F.x),.35,.95);
+      C={x:F.x+(L.x-F.x)*u,y:F.y+(L.y-F.y)*u}; nextZ=mode==="remate"?22:6;
+      segs=[fl(F,C,zF,nextZ,H*u*.8,V)];
+    } else {
+      segs=[fl(F,L,zF,0,H,V)];
+      if(mode==="bote"){ C=along(L,d,clamp(rnd(1.5,3),.5,sWall-.7)); segs.push(fl(L,C,0,5,6,V*.6)); }
+      else {   // bota y rebota en el cristal (fondo o lateral) antes del golpe
+        const W=along(L,d,sWall), r=sBack<=sSide?{x:-d.x,y:d.y}:{x:d.x,y:-d.y};
+        C=along(W,r,rnd(1.2,2.4)); segs.push(fl(L,W,0,8,6,V*.6), fl(W,C,8,5,3,Math.max(4,V*.4)));
+      }
+    }
+    C.x=dir>0?clamp(C.x,10.6,19.5):clamp(C.x,.5,9.4); C.y=clamp(C.y,.5,9.5);
+    const last=segs[segs.length-1], oldLen=dist(last.a,last.b);
+    if(oldLen>.01) last.d=Math.max(180,dist(last.a,C)/(oldLen/last.d));   // misma velocidad hasta el nuevo punto
+    last.b={x:C.x,y:C.y};
+    const tC=segs.reduce((a,s)=>a+s.d,0);
+
+    const ri=recv(C.y), rp=P[ri];
+    const need=dist(rp,C)/(tC/1000);
+    // Punto ganador: no llega (demasiado lejos) o golpe que no se puede devolver
+    if(need>7.5||Math.random()<{saque:.06,normal:.07,globo:.04,dejada:.3,remate:.45}[type]){
+      const E=along(L,d,Math.max(.3,Math.min(rnd(2,3.5),sWall-.2)));
+      goTo(ri,rp.x+(C.x-rp.x)*.6,rp.y+(C.y-rp.y)*.6);   // corre, pero no llega
+      queue.push(fl(F,L,zF,0,H,V), fl(L,E,0,0,type==="dejada"?3:6,V*.6), wait(E,0,150,()=>pointTo(t)));
+      return;
+    }
+    goTo(ri,C.x,C.y,tNow+tC);
+    goTo(o*2+1-(ri%2),clamp(C.x+dir*rnd(-1,1),0,20),ri%2?2.8:7.2);   // el compañero se pone a su altura
+    const fromWall=mode==="pared", next=mode==="remate"?"remate":null;
+    last.end=()=>shoot(ri,C,next||choose(C,fromWall),nextZ);
+    queue.push(...segs);
+  }
+
+  function stepBall(){
+    if(!seg&&queue.length){ seg=queue.shift(); seg.t0=T; }
+    while(seg&&T>=seg.t0+seg.d){
+      const s=seg; tNow=s.t0+s.d; seg=null; bp={x:s.b.x,y:s.b.y,z:s.zb};
+      if(s.end) s.end();
+      if(queue.length){ seg=queue.shift(); seg.t0=tNow; }
+    }
+    if(seg){ const t=(T-seg.t0)/seg.d;
+      bp={x:seg.a.x+(seg.b.x-seg.a.x)*t,y:seg.a.y+(seg.b.y-seg.a.y)*t,z:seg.za+(seg.zb-seg.za)*t+Math.sin(Math.PI*t)*seg.h}; }
+  }
+  function stepPlayers(dt){
+    for(const p of P){ const dx=p.tx-p.x, dy=p.ty-p.y, dd=Math.hypot(dx,dy); if(dd<1e-3){ p.dl=null; continue; }
+      if(p.dl!=null){ const rem=p.dl-T; if(rem<=dt){ p.x=p.tx; p.y=p.ty; p.dl=null; } else { p.x+=dx*dt/rem; p.y+=dy*dt/rem; } }
+      else { const st=VMAX*dt/1000; if(st>=dd){ p.x=p.tx; p.y=p.ty; } else { p.x+=dx/dd*st; p.y+=dy/dd*st; } } }
+  }
+  let lastNow=null;
   function frame(now){
     requestAnimationFrame(frame);
-    if(!box.offsetWidth||document.hidden){ t0=null; return; }   // cabecera oculta (Palabreja) o pestaña en segundo plano
-    if(t0===null){ t0=now; }
-    if(!segs.length) shot();
-    while((now-t0)>=segs[0].d){ t0+=segs[0].d; segs.shift(); if(!segs.length) shot(); }
-    const s=segs[0], t=(now-t0)/s.d;
-    put(s.a.x+(s.b.x-s.a.x)*t, s.a.y+(s.b.y-s.a.y)*t, Math.sin(Math.PI*t)*s.h);
+    if(!box.offsetWidth||document.hidden){ lastNow=null; return; }   // cabecera oculta (Palabreja) o pestaña en segundo plano
+    const dt=lastNow===null?16:Math.min(50,now-lastNow); lastNow=now; T+=dt;
+    stepBall(); stepPlayers(dt); draw();
   }
+  showScore(); startPoint(); draw();
   requestAnimationFrame(frame);
 })();
 </script>
