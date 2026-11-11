@@ -60,10 +60,7 @@ header.band nav.tabs{margin-top:4px}
 .ball-sh{background:rgba(0,0,0,.3);filter:blur(1px)}
 .pl{position:absolute;left:0;top:0;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#0A0F1A;box-shadow:0 0 0 1.5px rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.35);will-change:transform;transform:translate(-50px,-50px)}
 .ball{z-index:2}.ball-sh{z-index:1}
-.cside{position:absolute;top:50%;transform:translate(-50%,-50%);z-index:3;font-family:var(--display);font-weight:800;font-size:15px;line-height:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);font-variant-numeric:tabular-nums;pointer-events:none}
-.cside.win{color:var(--ball)}
-.cscore[hidden]{display:none}
-.cscore{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:3;display:flex;align-items:center;gap:8px;background:rgba(10,15,26,.82);color:#fff;border-radius:999px;padding:2px 12px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3}
+.cscore{position:absolute;left:0;top:0;transform:translateY(-50%);pointer-events:none;z-index:0;display:flex;align-items:center;gap:7px;background:rgba(10,15,26,.85);color:#fff;border-radius:999px;padding:1px 10px;font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1.3;white-space:nowrap}
 .cscore b{min-width:2.2ch;text-align:center}
 .cscore i{width:4px;height:4px;border-radius:50%;background:var(--ball)}
 .cscore .arr{width:0;height:0;border-block:5px solid transparent}
@@ -1272,9 +1269,8 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   // Elementos: jugadores, sus nombres y el marcador
   const pe=[0,1,2,3].map(()=>{ const d=document.createElement("div"); d.className="pl"; box.insertBefore(d,sh); return d; });
   const pn=[0,1,2,3].map(()=>{ const d=document.createElement("div"); d.className="pn"; box.appendChild(d); return d; });
-  // Marcador: los puntos de cada pareja en el borde, junto a su pared del fondo; los carteles, en el centro
-  const sideEl=[0,1].map(k=>{ const d=document.createElement("div"); d.className="cside"; box.appendChild(d); return d; });
-  const banner=document.createElement("div"); banner.className="cscore"; banner.hidden=true; box.appendChild(banner);
+  // Marcador: una pastilla abajo a la izquierda, fuera de la pista (por debajo de la bola y los jugadores)
+  const scoreEl=document.createElement("div"); scoreEl.className="cscore"; box.querySelector("svg").after(scoreEl);
   box.title="Toca la pista para ver un punto espectacular";
   // Nombres: 4 jugadores de la peña al azar en cada juego
   let names=[];
@@ -1291,7 +1287,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
   function draw(){
     const W=box.clientWidth, H=box.clientHeight, X=x=>(x+MX)/(20+2*MX)*W, Y=y=>(y+MY)/(10+2*MY)*H, zf=Math.min(1,H/200);
     P.forEach((p,i)=>{ const x=X(p.x), y=Y(p.y); pe[i].style.transform=`translate(${x}px,${y}px)`; pn[i].style.transform=`translate(${x}px,${y}px) translate(-50%,-185%)`; });
-    sideEl[0].style.left=X(-MX/2)+"px"; sideEl[1].style.left=X(20+MX/2)+"px";
+    scoreEl.style.left=X(0)+"px"; scoreEl.style.top=Y(10+MY/2)+"px";
     const z=bp.z*zf;
     sh.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)}px)`;
     ball.style.transform=`translate(${X(bp.x)}px,${Y(bp.y)-z}px) scale(${1+z/60})`;
@@ -1299,17 +1295,17 @@ if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventLi
 
   // ---- Marcador: 0, 15, 30, 40, iguales y ventaja (AD). Los carteles esperan si hay una celebración ----
   let celebUntil=0, pending;
-  function paint(html){ if(Date.now()<celebUntil){ pending=html; return; } banner.hidden=!html; if(html) banner.innerHTML=html; }
+  function paint(html){ if(Date.now()<celebUntil){ pending=html; return; } scoreEl.innerHTML=html; }
   function showScore(won){
+    if(won!=null) return paint(won===0?`<span class="arr l"></span><b>JUEGO</b>`:`<b>JUEGO</b><span class="arr r"></span>`);
     const N=["0","15","30","40"], [a,b]=sc;
     const lab=k=>a>=3&&b>=3?(a===b?"40":(k===0?a>b:b>a)?"AD":"40"):N[Math.min(3,sc[k])];
-    sideEl.forEach((d,k)=>{ d.textContent=won!=null?(won===k?"✓":""):lab(k); d.classList.toggle("win",won===k); });
-    paint(won==null?"":won===0?`<span class="arr l"></span><b>JUEGO</b>`:`<b>JUEGO</b><span class="arr r"></span>`);
+    paint(`<b>${lab(0)}</b><i></i><b>${lab(1)}</b>`);
   }
   const showLabel=t=>paint(`<b class="lbl">${t}</b>`);
   window.addEventListener("court-celebrate",ev=>{
     const who=ev.detail||[], txt=who.map(s=>String(s).split(/\s+/)[0]).join(" y ");
-    const prev=pending!==undefined?pending:(banner.hidden?"":banner.innerHTML);
+    const prev=pending!==undefined?pending:scoreEl.innerHTML;
     celebUntil=0; showLabel("¡GANAN "+txt.toUpperCase()+"!"); celebUntil=Date.now()+4500; pending=prev;
     pe.forEach((d,i)=>d.classList.toggle("jump",who.includes(names[i])));
     setTimeout(()=>{ celebUntil=0; pe.forEach(d=>d.classList.remove("jump")); const p=pending; pending=undefined; paint(p||""); },4500);
