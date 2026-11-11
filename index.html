@@ -471,10 +471,11 @@ function renderTable(weeks){
     return `<tr class="${k===0&&played?"lead":""}"><td class="pos">${k+1}</td><td class="name">${esc(pname(s.i))}</td>
       <td>${s.pj}</td><td>${s.pg}</td><td>${s.pp}</td><td>${s.sf-s.sc>0?"+":""}${s.sf-s.sc}</td><td>${s.jf-s.jc>0?"+":""}${s.jf-s.jc}</td>
       <td><span class="form">${f.map(x=>`<i class="${x}">${x==="w"?"V":x==="l"?"D":""}</i>`).join("")}</span></td><td class="pts">${s.pts}</td></tr>`}).join("");
-  return `<div class="row" style="justify-content:space-between"><h2>Clasificación individual</h2></div>
+  return `<div class="row" style="justify-content:space-between"><h2>Clasificación</h2></div>
   ${played?"":'<p class="note">Aún no hay partidos jugados. La tabla se rellena sola en cuanto se apunte el primer resultado en Jornadas.</p>'}
   <div class="card tablebox"><table><thead><tr><th>#</th><th class="name">Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Sets</th><th>Juegos</th><th>Últimos 5</th><th>Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div class="legend"><span>PJ jugados · PG ganados · PP perdidos</span><span>Sets y Juegos: diferencia a favor/en contra</span><span>Ganar 2-0 = 3 pts · Ganar 2-1 = 2 pts · Perder 1-2 = 1 pt · Perder 0-2 = 0 pts</span></div>`;
+  <div class="legend"><span>PJ jugados · PG ganados · PP perdidos</span><span>Sets y Juegos: diferencia a favor/en contra</span><span>Ganar 2-0 = 3 pts · Ganar 2-1 = 2 pts · Perder 1-2 = 1 pt · Perder 0-2 = 0 pts</span></div>
+`;
 }
 
 // ===== Estadísticas: todo sale de los sets y juegos de cada partido =====
