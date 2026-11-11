@@ -39,10 +39,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 header.band{background:var(--court);color:var(--court-ink);position:relative;overflow:hidden}
 /* Fondo: pista de pádel vista desde arriba (perímetro, red, líneas de saque y central con sus dos T) */
 header.band .court{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.court *{fill:none;stroke:rgba(255,255,255,.35);stroke-width:2;vector-effect:non-scaling-stroke}
-.court .net-sh{stroke:rgba(0,0,0,.18);stroke-width:9}
-.court .net{stroke:rgba(255,255,255,.8);stroke-width:3}
-header .wrap{padding-block:24px 0;position:relative;z-index:1}
+.court *{fill:none;stroke:rgba(255,255,255,.55);stroke-width:3;vector-effect:non-scaling-stroke}
+.court .glass{stroke:rgba(190,225,255,.35);stroke-width:12}
+.court .mesh{stroke:rgba(255,255,255,.3);stroke-width:6;stroke-dasharray:2 4}
+.court .net-sh{stroke:rgba(0,0,0,.22);stroke-width:12}
+.court .net{stroke:rgba(255,255,255,.9);stroke-width:4}
+header .wrap{padding-block:34px 0;position:relative;z-index:1}
+header.band h1{text-shadow:0 2px 12px rgba(0,0,0,.3)}
+header.band nav.tabs{margin-top:30px}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,8vw,52px);line-height:1;margin:6px 0 14px;text-wrap:balance;text-transform:uppercase;letter-spacing:.01em}
 .next{display:inline-flex;gap:8px;align-items:center;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px}
 nav.tabs{display:flex;gap:4px;margin-top:22px}
@@ -290,9 +294,12 @@ body.mode-pj{
 </nav></div>
 <header class="band">
   <svg class="court" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true">
-    <rect x="2" y="5" width="196" height="90"/>
-    <line x1="31.9" y1="5" x2="31.9" y2="95"/><line x1="168.1" y1="5" x2="168.1" y2="95"/>
-    <line x1="31.9" y1="50" x2="168.1" y2="50"/>
+    <!-- paredes: cristal en los fondos y en los 4 m de cada lateral, malla en el centro de los laterales -->
+    <path class="glass" d="M40 0H0V100H40M160 0H200V100H160"/>
+    <path class="mesh" d="M40 0H160M40 100H160"/>
+    <rect x="3" y="6" width="194" height="88"/>
+    <line x1="32.6" y1="6" x2="32.6" y2="94"/><line x1="167.4" y1="6" x2="167.4" y2="94"/>
+    <line x1="32.6" y1="50" x2="167.4" y2="50"/>
     <line class="net-sh" x1="100" y1="0" x2="100" y2="100"/><line class="net" x1="100" y1="0" x2="100" y2="100"/>
   </svg>
   <div class="wrap">
