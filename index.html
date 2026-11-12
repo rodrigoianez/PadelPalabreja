@@ -193,7 +193,7 @@ table.mini small{display:block;font-size:11px;color:var(--muted);font-weight:500
 .pick.h2h select{min-width:140px;flex:1 1 140px;max-width:240px}
 .pick.h2h span{color:var(--muted);font-weight:600}
 .pick.h2h .me{font-size:16px;padding:8px 12px;border-radius:8px;background:var(--soft)}
-.weekact{display:flex;justify-content:center;padding:0 0 12px}
+button.fwd{padding:3px 10px;font-size:12px;border-radius:999px}
 .allm{padding:0}
 .allm summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style-position:inside}
 .allm summary span{color:var(--muted);font-weight:500}
@@ -949,8 +949,11 @@ function renderWeeks(weeks,cur){
     if(w.vuelta!==lastV){ html+=`<div class="vuelta">Vuelta ${w.vuelta}</div>`; lastV=w.vuelta; }
     const done=w.matches.every(m=>results[m.id]&&evalSets(results[m.id].sets));
     const isCur=cur&&cur.n===w.n;
+    // a la derecha de la cabecera, el botón para adelantarla (solo jornadas sin jugar de la vuelta en curso)
+    const fwd=edit&&!editing&&nextFree&&w.n>nextFree.n&&w.vuelta===nextFree.vuelta&&weekFree(w);
     html+=`<section class="card week ${isCur?"current":""}"><div class="week-head"><h3>Jornada ${w.n}</h3>
-      <span class="row"><span class="date">${fmt(w.date)}</span>${isCur?'<span class="chip now">Próxima</span>':done?'<span class="chip done">Jugada</span>':""}</span></div>`;
+      <span class="row"><span class="date">${fmt(w.date)}</span>${isCur?'<span class="chip now">Próxima</span>':done?'<span class="chip done">Jugada</span>':""}${
+        fwd?`<button class="fwd" data-calfwd="${w.n}" title="Adelantar a la jornada ${nextFree.n}" aria-label="Adelantar a la jornada ${nextFree.n}">Adelantar</button>`:""}</span></div>`;
     w.matches.forEach((m,i)=>{
       const r=results[m.id]; const e=r&&evalSets(r.sets);
       const score=e?r.sets.filter(s=>s&&s.length===2&&s[0]!==s[1]&&s[0]!==null).map(s=>`<span>${Number(s[0])}-${Number(s[1])}</span>`).join("<i>/</i>"):"";
@@ -961,7 +964,6 @@ function renderWeeks(weeks,cur){
         ${editing===m.id?renderEditor(m):edit?`<div class="actions"><button class="link" data-edit="${m.id}">${e?"Cambiar resultado":"Apuntar resultado"}</button></div>`:""}
       </div>`;
     });
-    if(edit&&!editing&&nextFree&&w.n>nextFree.n&&w.vuelta===nextFree.vuelta&&weekFree(w)) html+=`<div class="weekact"><button class="link" data-calfwd="${w.n}">Adelantar a la jornada ${nextFree.n}</button></div>`;
     html+='</section>';
   }
   return html;
@@ -1020,8 +1022,8 @@ function renderSettings(){
     ${editErr?`<p class="err">${esc(editErr)}</p>`:""}
     <div class="row"><button class="primary" data-savecfg="1">Guardar ajustes</button><span class="note" id="saved"></span></div>
     <h3 class="sh" style="margin:6px 0 0">Calendario</h3>
-    <p class="note" style="margin:0">Vuelve a sortear los partidos de las jornadas que aún no tienen resultados. Las ya jugadas no cambian, todos siguen jugando con y contra todos y no se repite ningún partido entre vueltas. Con la liga sin empezar cambia todo; con jornadas ya jugadas cambia sobre todo el orden de las que quedan. Para adelantar una jornada concreta, usa el botón «Adelantar» de esa jornada en Jornadas.</p>
-    <div class="row"><button data-calrandom="1">Sortear los partidos que quedan</button><span class="note" id="calmsg"></span></div>
+    <p class="note" style="margin:0">Vuelve a sortear las jornadas que quedan por jugar. Las ya jugadas no cambian.</p>
+    <div class="row"><button class="primary" data-calrandom="1">Sortear los partidos que quedan</button><span class="note" id="calmsg"></span></div>
   </section>`+look;
 }
 
