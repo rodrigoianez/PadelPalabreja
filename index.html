@@ -193,6 +193,7 @@ table.mini small{display:block;font-size:11px;color:var(--muted);font-weight:500
 .pick.h2h select{min-width:140px;flex:1 1 140px;max-width:240px}
 .pick.h2h span{color:var(--muted);font-weight:600}
 .pick.h2h .me{font-size:16px;padding:8px 12px;border-radius:8px;background:var(--soft)}
+.weekact{display:flex;justify-content:center;padding:0 0 12px}
 .allm{padding:0}
 .allm summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style-position:inside}
 .allm summary span{color:var(--muted);font-weight:500}
@@ -458,7 +459,9 @@ window.claude={use:async n=>api[n]||null};
 </script>
 <script>
 // Torneo "whist" para 8: en cada vuelta cada jugador juega 1 vez con cada compañero y 2 veces contra cada rival.
-const ROUNDS=[
+// Cada vuelta tiene las mismas parejas pero enfrentadas a parejas distintas: ningún partido se repite y,
+// con 3 vueltas, cada pareja juega exactamente una vez contra cada una de las otras.
+const DESIGNS=[[
   [[[0,1],[2,3]],[[4,5],[6,7]]],
   [[[0,2],[4,6]],[[1,3],[5,7]]],
   [[[0,3],[4,7]],[[1,2],[5,6]]],
@@ -466,7 +469,23 @@ const ROUNDS=[
   [[[0,5],[2,7]],[[1,4],[3,6]]],
   [[[0,6],[3,5]],[[1,7],[2,4]]],
   [[[0,7],[1,6]],[[2,5],[3,4]]]
-];
+],[
+  [[[0,1],[4,5]],[[2,3],[6,7]]],
+  [[[0,2],[5,7]],[[1,3],[4,6]]],
+  [[[0,3],[1,2]],[[4,7],[5,6]]],
+  [[[0,4],[2,6]],[[1,5],[3,7]]],
+  [[[0,5],[3,6]],[[1,4],[2,7]]],
+  [[[0,6],[1,7]],[[2,4],[3,5]]],
+  [[[0,7],[3,4]],[[1,6],[2,5]]]
+],[
+  [[[0,1],[6,7]],[[2,3],[4,5]]],
+  [[[0,2],[1,3]],[[4,6],[5,7]]],
+  [[[0,3],[5,6]],[[1,2],[4,7]]],
+  [[[0,4],[3,7]],[[1,5],[2,6]]],
+  [[[0,5],[1,4]],[[2,7],[3,6]]],
+  [[[0,6],[2,4]],[[1,7],[3,5]]],
+  [[[0,7],[2,5]],[[1,6],[3,4]]]
+]];
 const ORDERS=[[0,1,2,3,4,5,6],[3,0,4,1,5,2,6],[5,3,1,6,4,2,0]];
 const DEFAULT_CFG={name:"Liguilla de los Miércoles",players:["Jugador 1","Jugador 2","Jugador 3","Jugador 4","Jugador 5","Jugador 6","Jugador 7","Jugador 8"],start:"2026-11-11",vueltas:2,skips:[]};
 
@@ -478,17 +497,36 @@ const tname=t=>pname(t[0])+" y "+pname(t[1]);
 const fmt=d=>d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"});
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 
+// Calendario: una ronda por jornada; cada ronda son 2 partidos [[pareja,pareja],[pareja,pareja]].
+// Si se ha cambiado desde Jornadas, cfg.orden guarda el calendario entero, una ronda por jornada escrita como
+// "01v23 45v67" (jugadores 0 y 1 contra 2 y 3, y 4 y 5 contra 6 y 7). Si falta o no es válido, se usa el original.
+const encR=r=>r.map(m=>m[0].join("")+"v"+m[1].join("")).join(" ");
+function decR(s){
+  if(typeof s!=="string"||!/^[0-7]{2}v[0-7]{2} [0-7]{2}v[0-7]{2}$/.test(s)||new Set(s.replace(/[v ]/g,"")).size!==8) return null;
+  return s.split(" ").map(m=>m.split("v").map(t=>[Number(t[0]),Number(t[1])]));
+}
+// El calendario se guarda siempre con las 3 vueltas (21 jornadas), aunque se jueguen menos: así, si luego se
+// añade una vuelta, sigue sin repetirse ningún partido
+function fullCalendar(){
+  const base=[]; for(let k=0;k<3;k++) for(const r of ORDERS[k]) base.push(DESIGNS[k][r]);
+  const o=cfg.orden; if(!Array.isArray(o)||!o.length) return base;
+  if(typeof o[0]==="number"){   // formato anterior: solo el orden de las jornadas
+    if(o.length>base.length||[...o].sort((a,b)=>a-b).some((x,k)=>x!==k)) return base;
+    return [...o.map(i=>base[i]),...base.slice(o.length)];
+  }
+  const dec=o.map(decR); if(!dec.every(Boolean)) return base;
+  return [...dec,...base.slice(dec.length)].slice(0,base.length);
+}
+const calendar=()=>fullCalendar().slice(0,7*Math.min(3,Math.max(1,cfg.vueltas||2)));
 function schedule(){
   const out=[]; const skips=new Set(cfg.skips||[]);
   let d=new Date((cfg.start||DEFAULT_CFG.start)+"T12:00:00");
   while(d.getDay()!==3) d.setDate(d.getDate()+1);
-  let n=1;
-  const v=Math.min(3,Math.max(1,cfg.vueltas||2));
-  for(let k=0;k<v;k++) for(const r of ORDERS[k]){
+  calendar().forEach((round,s)=>{ const n=s+1;
     while(skips.has(iso(d))) d.setDate(d.getDate()+7);
-    out.push({n,vuelta:k+1,date:new Date(d),matches:ROUNDS[r].map((m,i)=>({id:"j"+n+"p"+(i+1),a:m[0],b:m[1]}))});
-    d.setDate(d.getDate()+7); n++;
-  }
+    out.push({n,vuelta:Math.floor(s/7)+1,date:new Date(d),matches:round.map((m,i)=>({id:"j"+n+"p"+(i+1),a:m[0],b:m[1]}))});
+    d.setDate(d.getDate()+7);
+  });
   return out;
 }
 
@@ -849,9 +887,64 @@ document.addEventListener("click",async ev=>{
   if(await write(()=>d.id?col.doc(d.id).set(v):col.add(v))){ amiDraft=null; editing=null; render(); }
 });
 
+// ===== Cambiar el calendario: adelantar una jornada y volver a sortear lo que queda =====
+// Las jornadas con algo apuntado no se tocan nunca. Los dos cambios conservan las reglas del calendario:
+// en cada vuelta, 1 vez con cada compañero y 2 contra cada rival, y ningún partido repetido entre vueltas.
+let calErr="";
+const weekFree=w=>w.matches.every(m=>!results[m.id]);
+async function saveCalendar(cal){
+  const next={...cfg,orden:cal.map(encR)};
+  try{ await db.doc("liga/config").set(next); cfg=next; calErr=""; return true; }
+  catch(e){ calErr=e&&e.code==="pin"?"Hace falta el PIN del grupo para guardar."
+    :e&&e.code==="invalid_argument"?"No se ha podido guardar. Puede que falte actualizar las reglas de Firestore con el archivo firestore.rules nuevo."
+    :"No se ha podido guardar. Revisa la conexión y vuelve a intentarlo."; return false; }
+}
+// Sorteo de lo que queda por jugar:
+// 1) se intercambian jugadores entre sí en todo el calendario a la vez (así no puede aparecer un partido repetido),
+//    pero solo de las formas que dejan igual los partidos ya jugados: con la liga sin empezar vale cualquier
+//    mezcla; con una jornada jugada, solo cambiar a alguien por su pareja de ese día; con más, casi ninguna;
+// 2) se baraja el orden de las jornadas sin jugar dentro de cada vuelta.
+function randomCalendar(){
+  const weeks=schedule(), cal=fullCalendar(), played=cal.map((_,s)=>!!weeks[s]&&!weekFree(weeks[s]));
+  const shuffle=a=>{ for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; };
+  const pairs=cal.flatMap((r,s)=>played[s]?r.flatMap(m=>m):[]);   // parejas de los partidos ya jugados
+  let sig=[0,1,2,3,4,5,6,7];
+  if(!pairs.length) shuffle(sig);
+  else { const first=pairs.slice(0,4), ok=[];   // cada jugador se queda o se cambia por su pareja de la primera jornada jugada
+    for(let mask=0;mask<16;mask++){ const s=[0,1,2,3,4,5,6,7];
+      first.forEach(([x,y],k)=>{ if(mask>>k&1){ s[x]=y; s[y]=x; } });
+      if(pairs.every(([x,y])=>(s[x]===x&&s[y]===y)||(s[x]===y&&s[y]===x))) ok.push(s); }
+    sig=ok[Math.floor(Math.random()*ok.length)]; }
+  const out=cal.map((r,s)=>played[s]?r:r.map(m=>m.map(t=>t.map(x=>sig[x]))));
+  for(let v=0;v*7<out.length;v++){ const free=[...Array(7).keys()].map(k=>v*7+k).filter(s=>s<out.length&&!played[s]);
+    const mixed=shuffle(free.map(s=>out[s])); free.forEach((s,k)=>{ out[s]=mixed[k]; }); }
+  return out;
+}
+document.addEventListener("click",async ev=>{
+  const b=ev.target.closest&&ev.target.closest("[data-calfwd],[data-calrandom]"); if(!b) return;
+  const weeks=schedule(), cal=fullCalendar();
+  if(b.dataset.calrandom){
+    const msg=t=>{ const el=document.getElementById("calmsg"); if(el) el.textContent=t; };
+    const free=weeks.filter(weekFree).length;
+    if(free<2&&weeks.length-free>0) return msg("Queda una jornada o ninguna por jugar: no hay nada que sortear.");
+    if(!confirm("¿Volver a sortear los partidos de las "+free+" jornadas que quedan por jugar?\nCambia el calendario para todos. Las jornadas ya jugadas no se tocan.")) return;
+    msg(await saveCalendar(randomCalendar())?"Calendario sorteado. Míralo en Jornadas.":calErr);   // sin repintar, para no borrar el formulario
+    return;
+  }
+  const n=Number(b.dataset.calfwd), tgt=weeks.find(weekFree), w=weeks[n-1];
+  // por si alguien ha apuntado algo mientras tanto
+  // solo dentro de la misma vuelta (hay que terminar la actual antes de tocar la siguiente)
+  if(!tgt||!w||!weekFree(w)||w.n<=tgt.n||w.vuelta!==tgt.vuelta){ calErr="El calendario ha cambiado mientras tanto. Vuelve a intentarlo."; render(); return; }
+  if(!confirm("¿Adelantar la jornada "+n+" a la jornada "+tgt.n+"?\nSe intercambian las dos jornadas enteras: lo que había en la "+tgt.n+" pasa a jugarse en la "+n+".")) return;
+  [cal[tgt.n-1],cal[n-1]]=[cal[n-1],cal[tgt.n-1]];
+  await saveCalendar(cal); render();
+});
+
 function renderWeeks(weeks,cur){
   let html='<h2>Jornadas</h2>'; let lastV=0;
   const edit=canWrite!==false&&!readOnly&&db;
+  const nextFree=weeks.find(weekFree);   // la próxima jornada sin nada apuntado: a ella se pueden adelantar las siguientes
+  if(calErr) html+=`<p class="err">${esc(calErr)}</p>`;
   for(const w of weeks){
     if(w.vuelta!==lastV){ html+=`<div class="vuelta">Vuelta ${w.vuelta}</div>`; lastV=w.vuelta; }
     const done=w.matches.every(m=>results[m.id]&&evalSets(results[m.id].sets));
@@ -868,6 +961,7 @@ function renderWeeks(weeks,cur){
         ${editing===m.id?renderEditor(m):edit?`<div class="actions"><button class="link" data-edit="${m.id}">${e?"Cambiar resultado":"Apuntar resultado"}</button></div>`:""}
       </div>`;
     });
+    if(edit&&!editing&&nextFree&&w.n>nextFree.n&&w.vuelta===nextFree.vuelta&&weekFree(w)) html+=`<div class="weekact"><button class="link" data-calfwd="${w.n}">Adelantar a la jornada ${nextFree.n}</button></div>`;
     html+='</section>';
   }
   return html;
@@ -925,6 +1019,9 @@ function renderSettings(){
     <div class="skips" style="margin-top:8px">${(cfg.skips||[]).map(s=>`<span>${fmt(new Date(s+"T12:00:00"))}<button class="link" data-rmskip="${s}" aria-label="Quitar">×</button></span>`).join("")}</div></div>
     ${editErr?`<p class="err">${esc(editErr)}</p>`:""}
     <div class="row"><button class="primary" data-savecfg="1">Guardar ajustes</button><span class="note" id="saved"></span></div>
+    <h3 class="sh" style="margin:6px 0 0">Calendario</h3>
+    <p class="note" style="margin:0">Vuelve a sortear los partidos de las jornadas que aún no tienen resultados. Las ya jugadas no cambian, todos siguen jugando con y contra todos y no se repite ningún partido entre vueltas. Con la liga sin empezar cambia todo; con jornadas ya jugadas cambia sobre todo el orden de las que quedan. Para adelantar una jornada concreta, usa el botón «Adelantar» de esa jornada en Jornadas.</p>
+    <div class="row"><button data-calrandom="1">Sortear los partidos que quedan</button><span class="note" id="calmsg"></span></div>
   </section>`+look;
 }
 
@@ -968,7 +1065,7 @@ document.addEventListener("click",async ev=>{
   if(b.dataset.savecfg){ const next=readCfgForm();
     if(await write(()=>db.doc("liga/config").set(next))){ cfg=next; render(); const s=document.getElementById("saved"); if(s) s.textContent="Guardado"; } }
 });
-window.addEventListener("hashchange",()=>{editing=null;amiDraft=null;editErr="";render();});
+window.addEventListener("hashchange",()=>{editing=null;amiDraft=null;editErr="";calErr="";render();});
 
 render();
 (async()=>{

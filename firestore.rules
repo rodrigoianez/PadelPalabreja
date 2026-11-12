@@ -1,10 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Nombres de jugadores, fecha de inicio, vueltas y semanas sin liga
+    // Nombres de jugadores, fecha de inicio, vueltas, semanas sin liga y orden de las jornadas (si se han intercambiado)
     match /liga/config {
       allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['name', 'players', 'start', 'vueltas', 'skips'])
+      allow write: if request.resource.data.keys().hasOnly(['name', 'players', 'start', 'vueltas', 'skips', 'orden'])
                    && request.resource.data.players is list
                    && request.resource.data.players.size() == 8;
     }
